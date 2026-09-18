@@ -46,7 +46,7 @@ De rangorde die de opdrachtgever gaf: **Odoo eerst, Deliveroo tweede, TGTG derde
 |---|---|---|---|---|
 | D1 | **Skelet** | ✅ 12 aug | Navigatie, layout, designtokens in de huisstijl; alle schermen draaien | — |
 | D2 | Scherm Overzicht | ✅ 12 aug, lokaal | Kerncijfers, omzet- en stuksverloop, jaar-op-jaar, op het echte contract | C1, D1 |
-| D3 | Scherm Kanalen | ✅ 12 aug, lokaal | Winkel en TGTG naast elkaar; Deliveroo toont zich als onbeschikbaar met reden (G4) | C1 |
+| D3 | Scherm Kanalen | ✅ 12 aug, lokaal | Winkel naast Deliveroo; Deliveroo toont zich als onbeschikbaar met reden (G4). (Tot 18 sep 2026 stond hier ook TGTG; dat kanaal is sindsdien uit scope, zie `beslissingen.md`.) | C1 |
 | D4 | Scherm Producten | ✅ 12 aug, lokaal | Top-producten, stijgers en dalers, met verloop | C1 |
 | D5 | Scherm Marge | 🔄 13 aug | De invoerroute bestaat: een beheerder vult categoriemarges in op Instellingen en Margebewaking rekent (gewogen marge, dekking, per groep). Zonder invoer: onbeschikbaar-staat met reden. Wacht op de eerste échte invoer door de klant (vraag 19, herformuleerd) | C1 |
 | D6 | Scherm Prognose (tot 12 aug "Vooruitblik") | ✅ 12 aug, lokaal | Dagprognose met gekalibreerde band, plus prognoses per categorie, met de beperkingen erbij. Per product staat er bewust géén prognose op een scherm: dat cijfer is een backtestbevinding (20,2% WAPE per product-dag, zie `oplevering.md`) | E3 |
@@ -91,7 +91,7 @@ Geen enkele deliverable die op een poort wacht, wordt stilzwijgend uitgesteld. W
 |---|---|---|---|
 | G1 | Brutomarge per productgroep | D5, marge overal | eindklant, via Lien |
 | G2 | Welke kassa is de bakkerij | A7 en alles erboven | Lien, na onze analyse |
-| G3 | TGTG-export | — (binnen) | ✅ |
+| G3 | TGTG-export | — (binnen) | **Vervallen 18 sep 2026**: TGTG is uit scope, zie `beslissingen.md` |
 | G4 | Deliveroo-rapport | A9, B4, D3 gedeeltelijk | Deliveroo, via Lien |
 | G5 | Synchroniseert de preprod | B2 | Idealis |
 | G6 | Odoo-productielicentie | B2 op echte data | eindklant |

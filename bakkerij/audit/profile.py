@@ -272,14 +272,14 @@ def blok_kanalen(df: pd.DataFrame, gokken: dict) -> None:
     kolom = gokken["kanaal"].kolom
     if kolom is None:
         print("  Geen kanaalkolom herkend.")
-        print("\n  AMBER  zoek in andere kolommen naar Deliveroo of Too Good To Go. "
-              "Als het kanaal nergens in de rij staat, kan de beslislaag niet met "
-              "marges per kanaal rekenen, en dat is de scherpste hoek van dit "
-              "project. Prioritair uitvragen.")
+        print("\n  AMBER  zoek in andere kolommen naar Deliveroo. Als het kanaal "
+              "nergens in de rij staat, kan de beslislaag niet met marges per "
+              "kanaal rekenen, en dat is de scherpste hoek van dit project. "
+              "Prioritair uitvragen.")
         gevonden = []
         for k in df.columns:
             monster = df[k].dropna().astype(str).head(2000).str.lower()
-            if monster.str.contains("deliveroo|too good|tgtg", regex=True).any():
+            if monster.str.contains("deliveroo", regex=True).any():
                 gevonden.append(str(k))
         if gevonden:
             print(f"  Kanaaltermen komen wel voor in: {', '.join(gevonden)}")
@@ -293,9 +293,6 @@ def blok_kanalen(df: pd.DataFrame, gokken: dict) -> None:
     if "overig" in verdeling and verdeling["overig"] > 20:
         print("\n  AMBER  meer dan een vijfde valt in 'overig'. De mapping in "
               "io_load.KANAAL_HINTS moet uitgebreid worden met de echte waarden.")
-    if "tgtg" in verdeling:
-        print("\n  GROEN  Too Good To Go zit in de data. TGTG-volume is de beste "
-              "beschikbare proxy voor overschot. Zie docs/data-audit.md blok E.")
 
 
 def blok_censuur(df: pd.DataFrame) -> None:

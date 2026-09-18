@@ -28,11 +28,10 @@ from decimal import Decimal
 import pandas as pd
 import pytest
 
-from bakkerij import canoniek as cn
 from bakkerij import kostenmodel as km
-from bakkerij.db import bevroren, laden, sluitingen_db
 from bakkerij.db import contract_rijen as cr
 from bakkerij.db import kostenmodel_db as kmdb
+from bakkerij.db import laden, sluitingen_db
 from bakkerij.db import migratie as m
 from bakkerij.sluitingskalender import Uitspraak, Weekregel
 
@@ -355,7 +354,7 @@ def test_de_krimpwacht_leest_de_rijkdom_uit_echte_jsonb(echte_db):
     m.pas_toe(echte_db)
     antwoord = {
         "versie": 1,
-        "bron": ["tgtg", "winkel"],
+        "bron": ["deliveroo", "winkel"],
         "onbeschikbaar": [{"veld": "marge_per_groep", "reden": "geen kosten"}],
         "data": {},
     }
@@ -372,86 +371,15 @@ def test_de_krimpwacht_leest_de_rijkdom_uit_echte_jsonb(echte_db):
 
     sleutel = ("kanalen", "nl", "")
     assert bestaand[sleutel] == cr.rijkdom_uit_json(json.dumps(antwoord))
-    assert bestaand[sleutel].bronnen == frozenset({"tgtg", "winkel"})
+    assert bestaand[sleutel].bronnen == frozenset({"deliveroo", "winkel"})
 
     # En de wacht slaat aan op precies het runner-scenario: dezelfde sleutel,
-    # TGTG eruit.
-    zonder_tgtg = dict(antwoord, bron=["winkel"])
+    # Deliveroo eruit.
+    zonder_deliveroo = dict(antwoord, bron=["winkel"])
     armer = cr.verarming(
-        bestaand, {sleutel: cr.rijkdom_uit_json(json.dumps(zonder_tgtg))}
+        bestaand, {sleutel: cr.rijkdom_uit_json(json.dumps(zonder_deliveroo))}
     )
-    assert [v.verloren_bronnen for v in armer] == [frozenset({"tgtg"})]
-    echte_db.rollback()
-
-
-def test_het_bevroren_kanaal_komt_terug_zoals_het_erin_ging(echte_db):
-    """De heen-en-terugreis van het TGTG-kanaal, tegen een echte Postgres.
-
-    Dit is de test die de nachtelijke ketting op een runner draagt: daar
-    bestaat `data/interim/` niet, en sinds 19 aug 2026 haalt de canoniekbouw
-    het bevroren TGTG-kanaal dan uit de database (zie bakkerij/db/bevroren.py).
-    Als die reis ook maar één cijfer verandert, verschuift de historiek van een
-    heel kanaal zonder dat iemand het ziet -- de contractbouw rekent verderop
-    gewoon door op wat eruit komt.
-
-    De join op `dim_product` zit er expliciet in: `fact_verkoop` kent alleen
-    het id, en de canonieke vorm draagt de naam.
-    """
-    m.pas_toe(echte_db)
-    _leeg(echte_db, "fact_verkoop")
-    datum = "2026-07-01"
-    laden.schrijf(echte_db, "dim_kalender", _kalenderrij(datum, ""),
-                  KALENDER_KOLOMMEN, ["datum"])
-    laden.schrijf(
-        echte_db, "dim_product",
-        pd.DataFrame([{"product_id": "tgtg-42", "product_naam": "Verrassing"}]),
-        ["product_id", "product_naam"], ["product_id"],
-    )
-    verkoop = pd.DataFrame([{
-        "datum": pd.Timestamp(datum).date(), "filiaal_id": "1",
-        "product_id": "tgtg-42", "kanaal": "tgtg",
-        "aantal": Decimal("3.000"), "omzet_excl_btw": Decimal("12.84"),
-    }])
-    laden.schrijf(echte_db, "fact_verkoop", verkoop,
-                  ["datum", "filiaal_id", "product_id", "kanaal", "aantal",
-                   "omzet_excl_btw"],
-                  ["datum", "kanaal", "filiaal_id", "product_id"])
-
-    terug = bevroren.lees_verkopen(echte_db, "tgtg")
-
-    assert list(terug.columns) == cn.KOLOMMEN
-    assert len(terug) == 1
-    rij = terug.iloc[0]
-    assert rij["datum"] == pd.Timestamp(datum).date()
-    assert rij["product_naam"] == "Verrassing"
-    assert rij["aantal"] == pytest.approx(3.0)
-    assert rij["omzet_excl_btw"] == pytest.approx(12.84)
-
-    # En het winkelkanaal komt niet mee: de filter zit in de query, niet erna.
-    with pytest.raises(ValueError, match="geen enkele verkoopregel"):
-        bevroren.lees_verkopen(echte_db, "winkel")
-    echte_db.rollback()
-
-
-def test_de_kanaalwig_overleeft_dezelfde_reis(echte_db):
-    """De commissie wordt niet opnieuw afgeleid maar teruggelezen; zou dat
-    misgaan, dan stond de commissieregel op twee plaatsen."""
-    m.pas_toe(echte_db)
-    _leeg(echte_db, "fact_kanaalkost")
-    kost = pd.DataFrame([{
-        "kanaal": "tgtg", "maand": "2026-07",
-        "stuks": Decimal("90.000"), "bruto_per_stuk": Decimal("5.9500"),
-        "commissie_per_stuk": Decimal("1.6700"),
-        "inhouding_pct": Decimal("0.2807"),
-    }])
-    laden.schrijf(echte_db, "fact_kanaalkost", kost,
-                  ["kanaal", "maand", "stuks", "bruto_per_stuk",
-                   "commissie_per_stuk", "inhouding_pct"], ["kanaal", "maand"])
-
-    terug = bevroren.lees_kanaalkost(echte_db, "tgtg")
-    assert len(terug) == 1
-    assert terug.loc[0, "commissie_per_stuk"] == pytest.approx(1.67)
-    assert terug.loc[0, "inhouding_pct"] == pytest.approx(0.2807)
+    assert [v.verloren_bronnen for v in armer] == [frozenset({"deliveroo"})]
     echte_db.rollback()
 
 

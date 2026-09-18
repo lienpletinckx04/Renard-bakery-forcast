@@ -928,7 +928,6 @@ def kanalen(
     *,
     versheid: Versheid,
     bronstanden: Sequence[Bronstand],
-    tgtg_kost_bekend: bool,
 ) -> Briefing:
     """De briefing boven Verkoopkanalen.
 
@@ -937,11 +936,6 @@ def kanalen(
     meting die het scherm Instellingen toont, zodat de twee schermen niet elk
     hun eigen waarheid over Deliveroo vertellen. Een lege reeks levert geen
     punten op.
-
-    `tgtg_kost_bekend` is False wanneer er geen kanaalkosttabel is ingeladen en
-    de commissie van Too Good To Go dus niet te berekenen valt. De netto-omzet
-    als bruto tonen zou de wig verzwijgen; het scherm zegt dat al in
-    `onbeschikbaar`, en de briefing zegt erbij wie het kan oplossen.
     """
     punten = _versheidspunten(versheid)
 
@@ -949,33 +943,6 @@ def kanalen(
         punt = _bronpunt(stand, versheid.vandaag)
         if punt is not None:
             punten.append(punt)
-
-    if not tgtg_kost_bekend:
-        punten.append(
-            BriefingPunt(
-                kop=t(
-                    "De commissie van Too Good To Go is niet te berekenen",
-                    "La commission de Too Good To Go n'est pas calculable",
-                ),
-                waarom=t(
-                    "Er is geen kanaalkosttabel ingeladen voor dit venster. "
-                    "Bruto, commissie en netto staan daarom leeg met de reden "
-                    "erbij: netto als bruto tonen zou de wig verzwijgen, en dat "
-                    "is precies het cijfer waarvoor dit scherm bestaat.",
-                    "Aucune table de coûts de canal n'est chargée pour cette "
-                    "fenêtre. Le brut, la commission et le net restent donc "
-                    "vides avec la raison : afficher le net comme du brut "
-                    "masquerait l'écart, précisément le chiffre pour lequel cet "
-                    "écran existe.",
-                ),
-                nodig=t(
-                    f"De maandbestanden van Too Good To Go — {_wie_bakkerij()}.",
-                    f"Les fichiers mensuels de Too Good To Go — "
-                    f"{_wie_bakkerij()}.",
-                ),
-                status="let_op",
-            )
-        )
 
     return _bundel(punten)
 

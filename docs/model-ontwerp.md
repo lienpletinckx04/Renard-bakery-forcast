@@ -2,7 +2,7 @@
 
 > **Status, 12 augustus 2026: gedeeltelijk buiten scope.** De baklijst en de beslislaag zijn uit fase 1 gehaald; het product is een CFO-platform. Wat hieronder staat over **laag 1, de vraagverdeling, de baselines en het backtest-harnas** geldt onverkort: dat is de vooruitblik in het platform (D8). Wat hieronder staat over **laag 2, de beslislaag, het kritieke percentiel en de baklijst** wordt in fase 1 niet gebouwd.
 >
-> Het blijft staan om twee redenen. Het legt uit waarom TGTG economisch iets anders is dan een opruimkanaal, en dat inzicht bepaalt de waarde van een latere fase. En het documenteert wat er nodig zou zijn — brutomarges per productgroep — als de eindklant die stap alsnog wil zetten.
+> Het blijft staan om twee redenen. Het legt uit waarom een restwaardekanaal zoals TGTG economisch iets anders is dan een opruimkanaal, en dat inzicht bepaalt de waarde van een latere fase. En het documenteert wat er nodig zou zijn — brutomarges per productgroep — als de eindklant die stap alsnog wil zetten. (TGTG zelf is sinds 18 september 2026 uit scope, zie `beslissingen.md`; het voorbeeld hieronder blijft staan als economische illustratie, niet als beschrijving van een bestaand kanaal.)
 
 ## De kernstelling
 

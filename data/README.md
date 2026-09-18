@@ -19,7 +19,7 @@ processed/   Genormaliseerd naar het canonieke datamodel uit CLAUDE.md.
 
 ```
 raw/2026-08-12_odoo_verkopen_2024-01-01_2026-08-11.csv
-raw/2026-08-14_tgtg_export_handmatig.xlsx
+raw/2026-08-14_deliveroo_export_handmatig.csv
 ```
 
 Datum van ontvangst voorop, bron, dan de inhoud met het bereik. Zes weken later weet je dan nog welk bestand welk is, en dat scheelt meer tijd dan het kost.

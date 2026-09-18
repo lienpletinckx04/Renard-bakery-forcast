@@ -3,8 +3,8 @@
 Deze drie tests stonden tot 18 augustus 2026 in `tests/test_rapport_pdf.py`, bij
 de WeasyPrint-bouwer van het CFO-rapport. Die bouwer is opgeheven — het rapport
 is een weergave in het platform geworden, met `platform/lib/format.ts` als
-opmaaklaag — maar de omzetting zelf is nog in gebruik in
-`scripts/tgtg_restwaarde.py`, en dus blijft ze bewaakt.
+opmaaklaag — maar de omzetting zelf is nog in gebruik in scripts die zelf een
+tabel afdrukken, en dus blijft ze bewaakt.
 
 Het kernrisico is onveranderd: dit moet een *lexicale* omzetting blijven. Zodra
 hier iets gaat afronden of met floats rekenen, staat er op een tabel een ander

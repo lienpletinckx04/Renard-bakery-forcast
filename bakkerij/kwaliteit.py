@@ -6,7 +6,7 @@ en dat ziet er identiek uit aan een platform dat werkt. Deze module levert twee
 soorten antwoord, allebei als pure functies (DataFrames in, dataclasses uit,
 geen I/O), zodat de contractlaag er later een zesde antwoord `stand` van maakt:
 
-  bronstanden  per bron (odoo-kassa, tgtg, deliveroo): wanneer kwam er voor het
+  bronstanden  per bron (odoo-kassa, deliveroo): wanneer kwam er voor het
                laatst iets binnen, en is dat erg? — de dodemansknop (O14)
   wachters     controles op de data zelf: dubbele sleutels, negatieve waarden,
                gaten in de reeks, kalenderdekking, drempelranden (O15), en op
@@ -60,7 +60,7 @@ from bakkerij.canoniek import (
 from bakkerij.taal import kanaalnaam, procent_tekst, t
 
 #: kanaal in het canonieke model -> naam van de bron die het levert.
-BRONNEN = (("winkel", "odoo-kassa"), ("tgtg", "tgtg"), ("deliveroo", "deliveroo"))
+BRONNEN = (("winkel", "odoo-kassa"), ("deliveroo", "deliveroo"))
 
 #: Bronnen waarvan we wéten dat ze er nog niet zijn (open punt O2/G4). Hun
 #: 'ontbreekt' is zichtbaar in het bronnenlijstje mét reden, maar telt niet mee
@@ -76,9 +76,7 @@ BRONNEN = (("winkel", "odoo-kassa"), ("tgtg", "tgtg"), ("deliveroo", "deliveroo"
 #: kanaal in `bronstanden` niet in de bevroren tak maar in `_stand_dagelijks`,
 #: en dat is de strengste lat die er is: MAX_ONGEMETEN_DAGEN staat op twee. Twee
 #: dagen na de laatste geladen dag staat het kanaal dus 'achter', voorgoed, op
-#: een bron die per definitie niet dagelijks bijkomt. Dat is dezelfde fout die
-#: op 19 augustus voor TGTG gerepareerd is, maar twintig keer sneller, en op
-#: een kanaal waar niemand iets aan kan doen.
+#: een bron die per definitie niet dagelijks bijkomt.
 #:
 #: Er is nog een tweede reden waarom `_stand_dagelijks` hier niet past: die
 #: wachter verklaart ongemeten dagen aan de hand van de WINKELkalender
@@ -90,10 +88,9 @@ BRONNEN = (("winkel", "odoo-kassa"), ("tgtg", "tgtg"), ("deliveroo", "deliveroo"
 #: variant op de twee hierboven: het kanaal hoort in géén van beide lijsten,
 #: want het is niet afwezig en het is niet bevroren — er komt gewoon periodiek
 #: iets bij. ZO ZET JE DIE AAN: één regel in `ACHTER_DAGEN_PER_KANAAL` met de
-#: eigen drempel, in de orde van 90 dagen, zoals TGTG_ACHTER_DAGEN dat voor een
-#: maandelijkse bron doet. Dat is genoeg en er hoort niets anders bij:
-#: `bronstanden` routeert op de vereniging van `BEVROREN` en de sleutels van
-#: die tabel, dus een kanaal met een eigen lat komt vanzelf in
+#: eigen drempel, in de orde van 90 dagen. Dat is genoeg en er hoort niets
+#: anders bij: `bronstanden` routeert op de vereniging van `BEVROREN` en de
+#: sleutels van die tabel, dus een kanaal met een eigen lat komt vanzelf in
 #: `_stand_periodiek` en nooit in `_stand_dagelijks`. Vergeet je die regel, dan
 #: valt het alsnog in de dagelijkse tak — dezelfde val als hierboven.
 #:
@@ -104,52 +101,29 @@ BEKEND_AFWEZIG = ("deliveroo",)
 #: mogen worden. De keerzijde van BEKEND_AFWEZIG: die bron kwam nooit, deze
 #: komt niet meer.
 #:
-#: TGTG staat hier sinds 19 augustus 2026. Blok 9 (de ingestmailbox) is op
-#: 17 augustus geschrapt op vraag van de opdrachtgever, dus de historiek loopt
-#: tot juli 2026 en blijft daar staan — zie `bakkerij/db/bevroren.py`, dat om
-#: dezelfde reden bestaat. Zonder deze lijst meet `_stand_periodiek` de afstand
-#: tot vandaag, en die groeit elke nacht: de jongste TGTG-dag is 31 juli 2026,
-#: dus op 14 september 2026 passeert ze TGTG_ACHTER_DAGEN en staat het kanaal
-#: 'achter'. Dat is achttien dagen ná de oplevering, en het is permanent. Het
-#: gevolg zou tot in de voettekst van élk scherm lopen ('ergste' wordt let_op)
-#: plus een briefingpunt "TGTG loopt achter" op elk scherm, elke dag, voorgoed
-#: — precies de alarmvermoeidheid die de kernregel hierboven verbiedt, en dan
-#: nog wel over een toestand waar niemand iets aan kan doen.
+#: Vandaag leeg: er is geen kanaal in deze toestand. DELIVEROO KOMT HIER BIJ op
+#: de dag dat het kanaal geladen wordt, en verdwijnt dan uit `BEKEND_AFWEZIG`
+#: hierboven — om dezelfde reden: de ingestmailbox is geschrapt, dus de
+#: historiek komt uit een handmatige Partner Hub-download en staat daarna
+#: stil. De volledige afweging, inclusief de derde mogelijkheid (een
+#: periodieke download, en dan hoort het kanaal in geen van beide lijsten),
+#: staat bij `BEKEND_AFWEZIG`.
 #:
-#: Wat blijft: het kanaal staat mét zijn jongste meetdag en de reden in het
-#: bronnenlijstje op Instellingen. Er verdwijnt dus geen feit, alleen een
-#: alarm dat niets meer meldt.
-#:
-#: KOMT ER OOIT TOCH WEER AANVOER, dan hoort het kanaal hier wéér uit: vanaf
-#: dat moment ís een achterstand weer een signaal. Dat is één regel, en deze
-#: opmerking is de vindplaats ervan. Meer dan die ene regel is het ook niet:
-#: TGTG houdt zijn lat in `ACHTER_DAGEN_PER_KANAAL`, dus het kanaal komt dan
-#: vanzelf bij `_stand_periodiek` en niet bij de dagelijkse wachter.
-#:
-#: DELIVEROO KOMT HIER BIJ op de dag dat het kanaal geladen wordt, en verdwijnt
-#: dan uit `BEKEND_AFWEZIG` hierboven. Om dezelfde reden als TGTG: de
-#: ingestmailbox is geschrapt, dus de historiek komt uit een handmatige
-#: Partner Hub-download en staat daarna stil. De volledige afweging, inclusief
-#: de derde mogelijkheid (een periodieke download, en dan hoort het kanaal in
-#: geen van beide lijsten), staat bij `BEKEND_AFWEZIG`.
-#:
-#: DEZE LIJST ROUTEERT MEE. `bronstanden` stuurt een kanaal dat hier staat naar
-#: `_stand_bevroren`; tot 28 augustus 2026 stond daar de kanaalnaam 'tgtg'
-#: hardgecodeerd. Dat betekende dat het begrip 'wordt niet meer aangevuld' op
-#: twee plaatsen leefde — hier als lijst, daar als naam — en dat een tweede
-#: bevroren kanaal alleen de goede tak haalde als iemand aan beide dacht. Nu is
-#: er één plek, en dat is deze.
-BEVROREN = ("tgtg",)
+#: DEZE LIJST ROUTEERT MEE: `bronstanden` stuurt een kanaal dat hier staat naar
+#: `_stand_bevroren`. Een kanaal daar krijgt géén achterstandsalarm meer, wat
+#: blijft is zijn jongste meetdag en de reden in het bronnenlijstje.
+BEVROREN = ()
 
 #: Zoveel dagen zonder meting en zonder kalenderverklaring mag een dagelijkse
 #: bron achterlopen voor hij 'achter' heet. Twee, niet nul: de nachtelijke run
 #: laadt gisteren, en één haperende nacht is nog geen storing.
 MAX_ONGEMETEN_DAGEN = 2
 
-#: TGTG levert per maand (het dagbestand komt met de maandfactuur mee). De
-#: jongste meetdag mag daardoor tot ~anderhalve maand achterlopen voor er iets
-#: mis is; pas daarboven heet de bron 'achter'.
-TGTG_ACHTER_DAGEN = 45
+#: De terugvallat voor een periodiek kanaal zonder eigen regel in
+#: `ACHTER_DAGEN_PER_KANAAL`. Een maandritme is de voorzichtige keuze — het is
+#: het enige aanleverritme dat we ooit gemeten hebben, en een strengere
+#: terugval zou achterstand melden die er niet is.
+STANDAARD_ACHTER_DAGEN = 45
 
 #: De lat per kanaal, voor de bronnen die niet dagelijks bijkomen. DEZE TABEL
 #: ROUTEERT MEE, en dat is haar tweede reden van bestaan: `bronstanden` stuurt
@@ -159,22 +133,22 @@ TGTG_ACHTER_DAGEN = 45
 #: op twee, en dat is een permanent 'achter' op een bron die per definitie niet
 #: dagelijks bijkomt (zie `BEKEND_AFWEZIG` voor het hele verhaal).
 #:
-#: Een tabel en geen tweede losse constante, want zo staat de vraag "welk
+#: Een tabel en geen losse constante per kanaal, want zo staat de vraag "welk
 #: aanleverritme heeft dit kanaal?" op één vindbare plaats in plaats van
 #: verspreid door de functie die hem stelt.
 #:
 #: Een kanaal dat hier niet staat, valt in `_stand_periodiek` terug op
-#: TGTG_ACHTER_DAGEN. Via `bronstanden` kan dat niet gebeuren — de routering
-#: gebruikt deze sleutels — dus die terugval geldt alleen bij een rechtstreekse
-#: aanroep. Ze staat er omdat een KeyError hier de hele `stand()` zou meenemen,
-#: en dat is de dodemansknop die dan zwijgt: de laag die moet melden dat het
-#: platform stilstaat, hoort zelf niet om te vallen. Het maandritme is daarbij
-#: de voorzichtige keuze — het is het enige aanleverritme dat we ooit gemeten
-#: hebben, en een strengere terugval zou achterstand melden die er niet is.
+#: STANDAARD_ACHTER_DAGEN. Via `bronstanden` kan dat niet gebeuren — de
+#: routering gebruikt deze sleutels — dus die terugval geldt alleen bij een
+#: rechtstreekse aanroep. Ze staat er omdat een KeyError hier de hele `stand()`
+#: zou meenemen, en dat is de dodemansknop die dan zwijgt: de laag die moet
+#: melden dat het platform stilstaat, hoort zelf niet om te vallen.
 #:
-#: Alleen kanalen die vandaag laden staan hierin. Een lat voor een bron die nog
-#: niet bestaat is een getal dat niemand ooit tegen de werkelijkheid houdt.
-ACHTER_DAGEN_PER_KANAAL = {"tgtg": TGTG_ACHTER_DAGEN}
+#: Vandaag leeg: alleen kanalen die vandaag laden staan hierin, en er is nu
+#: geen kanaal met een periodiek (niet-dagelijks) ritme. Een lat voor een bron
+#: die nog niet bestaat is een getal dat niemand ooit tegen de werkelijkheid
+#: houdt.
+ACHTER_DAGEN_PER_KANAAL: dict[str, int] = {}
 
 #: Zoveel dagen moet de kalender minstens voorbij vandaag lopen: de prognose
 #: heeft voor elke voorspelde dag een kalenderrij nodig (zie VOORUIT_DAGEN in
@@ -391,7 +365,7 @@ def _stand_bevroren(kanaal: str, deel: pd.DataFrame) -> Bronstand:
     van van de lijst waar het besluit in staat.
 
     `bron` is hier het kanaal zelf: `BRONNEN` geeft elke bron die niet
-    dagelijks bijkomt dezelfde naam als haar kanaal (tgtg, deliveroo), en de
+    dagelijks bijkomt dezelfde naam als haar kanaal (deliveroo), en de
     enige bron die anders heet — de kassa — komt hier per definitie nooit.
     """
     laatste = _datums(deel).max()
@@ -430,16 +404,15 @@ def _stand_periodiek(kanaal: str, deel: pd.DataFrame,
     per kwartaal binnenkomt volgt de openingsdagen van de toog niet, dus
     winkel_open en gepland_dicht zouden er niets over verklaren.
 
-    Het kanaal draagt zijn eigen naam in de toelichting: tot 28 augustus 2026
-    stond "TGTG" in de zin, in beide talen, en dan liegt de tekst zodra een
-    tweede kanaal langs dezelfde functie komt. De naam komt uit
-    `taal.kanaalnaam`, dezelfde bron als elk ander kanaallabel dat een mens
-    leest. Voor `bron` geldt hetzelfde als bij `_stand_bevroren`.
+    Het kanaal draagt zijn eigen naam in de toelichting, uit `taal.kanaalnaam`
+    — dezelfde bron als elk ander kanaallabel dat een mens leest — zodat de
+    tekst klopt zodra een tweede kanaal langs dezelfde functie komt. Voor
+    `bron` geldt hetzelfde als bij `_stand_bevroren`.
     """
     laatste = _datums(deel).max()
     # De lat van dít kanaal, met de terugval die bij ACHTER_DAGEN_PER_KANAAL
     # verantwoord staat: wie er geen heeft, krijgt die van de maandelijkse bron.
-    lat = ACHTER_DAGEN_PER_KANAAL.get(kanaal, TGTG_ACHTER_DAGEN)
+    lat = ACHTER_DAGEN_PER_KANAAL.get(kanaal, STANDAARD_ACHTER_DAGEN)
     naam = kanaalnaam(kanaal)
     oud = (vandaag - laatste).days
     if oud > lat:

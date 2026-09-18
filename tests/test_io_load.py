@@ -63,8 +63,6 @@ def test_parse_getallen_mengt_notaties_binnen_een_kolom():
     ("Winkel Centrum", "winkel"),
     ("POS kassa 2", "winkel"),
     ("Deliveroo", "deliveroo"),
-    ("Too Good To Go", "tgtg"),
-    ("TGTG ochtend", "tgtg"),
     ("Marktkraam", "overig"),
 ])
 def test_raad_kanaal(invoer, verwacht):

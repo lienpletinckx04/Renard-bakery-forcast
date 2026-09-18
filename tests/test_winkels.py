@@ -53,6 +53,6 @@ def test_ontbrekend_bestand_is_leeg_geen_fout(tmp_path):
 
 def test_niet_toegewezen_meldt_wat_buiten_de_indeling_valt():
     winkels = wk.parse_winkels(GELDIG)
-    assert wk.niet_toegewezen({"1", "2", "3", "4", "tgtg-99"}, winkels) == (
-        "tgtg-99",)
+    assert wk.niet_toegewezen({"1", "2", "3", "4", "extern-99"}, winkels) == (
+        "extern-99",)
     assert wk.niet_toegewezen({"1", "4"}, winkels) == ()

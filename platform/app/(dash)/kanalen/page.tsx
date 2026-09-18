@@ -173,14 +173,6 @@ export default async function KanalenPagina() {
         })}
       </div>
 
-      {reden(antwoord.onbeschikbaar, "kanaal.tgtg.kost") ? (
-        <Onbeschikbaar
-              t={t}
-          titel={t("kanalen.tgtgKost")}
-          reden={reden(antwoord.onbeschikbaar, "kanaal.tgtg.kost")!}
-        />
-      ) : null}
-
       <Toelichting titel={t("algemeen.watNietStaat")} regels={antwoord.onbeschikbaar} t={t} taal={taal} />
     </div>
   );

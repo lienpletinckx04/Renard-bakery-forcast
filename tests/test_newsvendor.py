@@ -19,10 +19,10 @@ def test_kritiek_percentiel_boven_helft_bij_hoge_marge():
     assert e.kritiek_percentiel == pytest.approx(2 / 3)
 
 
-def test_tgtg_verhoogt_het_optimum():
+def test_restwaarde_verhoogt_het_optimum():
     """De kern van het project: restwaarde verschuift het optimum omhoog.
 
-    Too Good To Go is geen opruimkanaal maar een instelknop.
+    Een restwaardekanaal is geen opruimkanaal maar een instelknop.
     """
     zonder = Economie(verkoopprijs=2.40, productiekost=0.80, restwaarde=0.0)
     met = Economie(verkoopprijs=2.40, productiekost=0.80, restwaarde=0.50)

@@ -116,7 +116,7 @@ export default async function DashLayout({
             een verkeerd signaal over de versheid. */}
         <footer className="border-t border-warmgrijs px-4 py-4 text-xs font-light text-zwart sm:px-6 lg:px-10">
           {stand.cijfers} · {stand.verwerkt} · {t("voet.bron")}:{" "}
-          {/* De bronnamen in de envelope zijn machinesleutels ("tgtg");
+          {/* De bronnamen in de envelope zijn machinesleutels ("deliveroo");
               hetzelfde veldLabel als op Instellingen maakt ze leesbaar. */}
           {overzicht.bron.map((b) => veldLabel(b, taal)).join(", ")}
           {kwaliteit ? (

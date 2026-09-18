@@ -1,7 +1,6 @@
 """Bouwt het canonieke datamodel uit de bronextracten.
 
-Leest het jongste Odoo-werkextract (data/raw) en de TGTG-dagen en -maanden
-(data/interim), en schrijft:
+Leest het jongste Odoo-werkextract (data/raw), en schrijft:
 
     data/interim/canoniek_verkopen.csv   datum | filiaal_id | product_id |
                                          product_naam | kanaal | aantal |
@@ -10,16 +9,7 @@ Leest het jongste Odoo-werkextract (data/raw) en de TGTG-dagen en -maanden
 
 Deliveroo is als kanaal gedefinieerd maar leeg; het script toont dat expliciet
 als onbeschikbaar met reden, conform harde regel 8. De keuzes (alle drie de
-kassa's, netto TGTG-omzet, sluitingsdag = geen meting) staan in
-bakkerij/canoniek.py, niet hier.
-
-TWEE PLEKKEN WAAR TGTG VANDAAN KAN KOMEN (19 aug 2026)
-
-Normaal de bestanden in data/interim. Ontbreken die én staat CONTRACT_BRON op
-`db`, dan komt het kanaal uit de database terug — zie `haal_tgtg` hieronder en
-`bakkerij/db/bevroren.py` voor het waarom. Dat is wat de nachtelijke ketting op
-een GitHub-runner mogelijk maakt: daar bestaat data/interim niet, want die map
-is gitignored.
+kassa's, sluitingsdag = geen meting) staan in bakkerij/canoniek.py, niet hier.
 
 Draaien:  make canoniek
 """
@@ -273,75 +263,20 @@ def _schrijf_csv(df, pad) -> None:
     os.replace(tmp, pad)
 
 
-#: De TGTG-bestanden die de canoniekbouw normaal leest. Buiten git, zoals alle
-#: data: de bronbestanden zijn pdf's met klantdata erin (harde regel 2).
-TGTG_BESTANDEN = ("tgtg_dagen.csv", "tgtg_maanden.csv")
-
-
-def _tgtg_uit_bestanden() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Het gewone pad: de verwerkte TGTG-bestanden zijn de bron."""
-    dagen = pd.read_csv(INTERIM / "tgtg_dagen.csv")
-    maanden = pd.read_csv(INTERIM / "tgtg_maanden.csv")
-    return (canoniek.tgtg_naar_canoniek(dagen, maanden),
-            canoniek.kanaalkost_tgtg(dagen, maanden))
-
-
-def _tgtg_uit_database() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Het runnerpad: het bevroren kanaal komt uit de bewaarplaats terug.
-
-    Zie `bakkerij/db/bevroren.py` voor waarom dit mag en wanneer. Kort: TGTG
-    krijgt sinds 17 augustus geen nieuwe aanvoer meer, dus wat in de database
-    staat ís de historiek. Hier wordt niets herberekend — ook de commissiewig
-    komt terug zoals hij erin ging, want die twee keer afleiden zou betekenen
-    dat de commissieregel op twee plaatsen staat.
-    """
-    from bakkerij.db.bevroren import lees_kanaalkost, lees_verkopen
-    from bakkerij.db.verbinding import verbind
-
-    with verbind() as verbinding:
-        return (lees_verkopen(verbinding, "tgtg"),
-                lees_kanaalkost(verbinding, "tgtg"))
-
-
-def haal_tgtg() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Het TGTG-kanaal, uit de bestanden of anders uit de database.
-
-    De bestanden gaan vóór, altijd: zij zijn de bron en de database is er maar
-    de bewaarplaats van. Ontbreken ze, dan hangt het ervan af waar deze bouw
-    draait. Op een runner (CONTRACT_BRON=db) is de database het antwoord; op
-    een werkplek is het ontbreken van de bestanden gewoon een fout, en dan is
-    de oude melding nog steeds de juiste.
-    """
-    ontbreekt = [n for n in TGTG_BESTANDEN if not (INTERIM / n).exists()]
-    if not ontbreekt:
-        return _tgtg_uit_bestanden()
-
-    if contract_bron() != "db":
-        raise SystemExit(
-            f"{', '.join(ontbreekt)} ontbreekt. Draai eerst: make tgtg. "
-            "(Draait dit op een runner zonder data/interim/, zet dan "
-            "CONTRACT_BRON=db; dan komt het bevroren TGTG-kanaal uit de "
-            "database.)"
-        )
-
-    print(f"TGTG: {', '.join(ontbreekt)} ontbreekt, het kanaal komt uit de "
-          "database (bevroren historiek, zie bakkerij/db/bevroren.py)")
-    tgtg, kanaalkost = _tgtg_uit_database()
-    print(f"TGTG: {len(tgtg):,} verkoopregels terug, "
-          f"{tgtg['datum'].min()} t/m {tgtg['datum'].max()}, "
-          f"{len(kanaalkost)} maanden kanaalkost")
-    return tgtg, kanaalkost
+#: Lege kanaalkosttabel: zonder commissiekanaal met data is er niets om te
+#: berekenen. `bakkerij.canoniek.kanaalstatus`/`kanalen` tonen dat als
+#: onbeschikbaar met reden, niet als een stille nul.
+KANAALKOST_KOLOMMEN = ["kanaal", "maand", "stuks", "bruto_per_stuk",
+                       "commissie_per_stuk", "inhouding_pct"]
 
 
 def main() -> int:
-    # Nodig vóór haal_tgtg(): het databasepad leest CONTRACT_BRON en de
-    # verbindingsstring uit de omgeving, en op een werkplek staan die in .env.
     laad_env()
     winkel_pad = laatste("*_odoo_verkopen_*.csv", RAW)
-    tgtg, kanaalkost = haal_tgtg()
+    kanaalkost = pd.DataFrame(columns=KANAALKOST_KOLOMMEN)
 
     winkel = canoniek.laad_winkel(winkel_pad)
-    verkopen = canoniek.bouw_verkopen(winkel, tgtg)
+    verkopen = canoniek.bouw_verkopen(winkel)
     kal = canoniek.bouw_kalender(verkopen)
     kal = verwerk_agenda(kal)
     kal = verwerk_sluitingen(kal)

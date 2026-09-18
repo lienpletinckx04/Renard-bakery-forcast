@@ -96,12 +96,8 @@ def test_de_wachtrij_komt_als_uploads_terug():
 
 
 def test_een_lege_postbus_is_geen_fout():
-    """Anders dan bij een bevroren kanaal betekent leeg hier niets bijzonders.
-
-    `bevroren.lees_verkopen` werpt bij nul rijen omdat daar een heel kanaal
-    verdwenen zou zijn. Een postbus waar niemand iets in gelegd heeft, is
-    gewoon leeg.
-    """
+    """Een postbus waar niemand iets in gelegd heeft, is gewoon leeg -- geen
+    verdwenen kanaal en dus geen fout."""
     assert up.lees_onverwerkt(NepVerbinding({"rijen": []}), "deliveroo") == []
 
 

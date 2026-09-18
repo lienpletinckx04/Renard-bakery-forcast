@@ -3,11 +3,11 @@
 DE PARSER ZELF IS NOG NIET GEBOUWD, EN DAT IS EEN BESLISSING (zie
 `beslissingen.md`, 25 aug 2026). Wat hier staat is het skelet: de foutklasse,
 de vorm van de twee rapporten, en de twee controles die geen kennis van de
-documentvorm vergen. Het lezen zelf wacht op echte CSV's, want de les van de
-TGTG-parser is dat de vorm van echte documenten verrast — drie datumnotaties,
-drie namen voor dezelfde artikelregel, en een euroteken dat vóór, achter of
-nergens staat. Een parser op een bedachte CSV is schijnwerk dat je twee keer
-betaalt.
+documentvorm vergen. Het lezen zelf wacht op echte CSV's, want de ervaring met
+een eerdere kanaalparser is dat de vorm van echte documenten verrast — drie
+datumnotaties, drie namen voor dezelfde artikelregel, en een euroteken dat
+vóór, achter of nergens staat. Een parser op een bedachte CSV is schijnwerk
+dat je twee keer betaalt.
 
 Deliveroo heeft geen bruikbare API voor dit doel: de Order API geeft niets
 ouder dan dertig dagen en de webhook draagt geen commissie en geen
@@ -19,13 +19,11 @@ zaakvoerder zelf bij. Twee rapporten, en ze vullen elkaar aan:
     Orders       per bestelling, met `Deliveroo commission` en
                  `VAT on Deliveroo commission`. GEEN artikelregels.
 
-Daar zit het eigenlijke werk van deze module, en het is werk dat bij TGTG niet
-bestond: TGTG rekent één vast tarief per pakket, af te lezen van de
-maandfactuur. Deliveroo rekent per bestelling, terwijl de omzet per artikel
-staat. Netto-omzet per product-dag vergt dus een toewijzing van de
-ordercommissie over de artikelregels van diezelfde order. Twee routes, en
-welke het wordt hangt af van één ding dat we nog niet weten: of de twee
-rapporten een gemeenschappelijke order-sleutel dragen.
+Daar zit het eigenlijke werk van deze module: Deliveroo rekent per bestelling,
+terwijl de omzet per artikel staat. Netto-omzet per product-dag vergt dus een
+toewijzing van de ordercommissie over de artikelregels van diezelfde order.
+Twee routes, en welke het wordt hangt af van één ding dat we nog niet weten:
+of de twee rapporten een gemeenschappelijke order-sleutel dragen.
 
     met order-sleutel : join, en de commissie pro rata over de artikelregels
                         naar subtotaal. Zuiver, en dan is de marge per product
@@ -40,7 +38,7 @@ het soort verschil dat niemand naast elkaar legt tot het te laat is.
 
 Alles hier is een pure functie. Het inlezen van de bestanden staat in
 `scripts/deliveroo_extract.py`, zodat dit met vaste teksten te testen is en er
-geen klantbestand in de tests hoeft te staan (zelfde splitsing als bij TGTG).
+geen klantbestand in de tests hoeft te staan.
 
 DE MAPPENCONVENTIE. Partner Hub levert per download een bereik van maximaal
 negentig dagen, en de bestandsnaam die het portaal meegeeft is niet vast.
@@ -79,12 +77,11 @@ NOG_NIET_GEBOUWD = (
 class DeliverooFormaatFout(ValueError):
     """De CSV ziet er anders uit dan verwacht.
 
-    Met opzet een fout en geen stille nul, om dezelfde reden als
-    `TgtgFormaatFout`: een leverancier wijzigt ergens onderweg de vorm van
-    zijn export, en een parser die dat niet merkt levert een leeg kwartaal op
-    dat niemand opvalt. Bij Deliveroo weegt dat zwaarder dan bij TGTG, want de
-    historiek is niet opnieuw op te halen: het venster in Partner Hub is
-    twaalf maanden en schuift elke dag op.
+    Met opzet een fout en geen stille nul: een leverancier wijzigt ergens
+    onderweg de vorm van zijn export, en een parser die dat niet merkt levert
+    een leeg kwartaal op dat niemand opvalt. Bij Deliveroo weegt dat extra
+    zwaar, want de historiek is niet opnieuw op te halen: het venster in
+    Partner Hub is twaalf maanden en schuift elke dag op.
     """
 
 
@@ -176,13 +173,12 @@ def klopt_met_bereik(
 
     Dit vangt de enige echt gevaarlijke leesfout af: dag en maand omgewisseld.
     05/03 en 03/05 zijn allebei geldige datums en geen enkele parser ziet het
-    verschil. Bij TGTG deed `klopt_met_maand` dit met de maandmap; hier is de
-    map het bereik van de download, en dat werkt beter: negentig dagen buiten
+    verschil. Hier is de map het bereik van de download: negentig dagen buiten
     een bereik van negentig dagen valt harder op dan een dag buiten een maand.
 
-    Het risico is bij Deliveroo ook groter dan bij TGTG. Partner Hub is
-    Engelstalig, en een Engelstalige export schrijft `03/05` net zo makkelijk
-    als mei-de-derde. Van de 365 dagen in een jaar zijn er 132 waarop de
+    Het risico is bij Deliveroo extra groot. Partner Hub is Engelstalig, en
+    een Engelstalige export schrijft `03/05` net zo makkelijk als
+    mei-de-derde. Van de 365 dagen in een jaar zijn er 132 waarop de
     omwisseling een andere, even geldige datum oplevert.
 
     Geeft de lijst onveranderd terug zodat dit in een keten past

@@ -184,10 +184,6 @@ const WOORDEN = {
     "30 derniers jours · part",
   ],
   "kanalen.commissiePct": ["Commissie ({pct})", "Commission ({pct})"],
-  "kanalen.tgtgKost": [
-    "Kanaalkost Too Good To Go",
-    "Coût du canal Too Good To Go",
-  ],
 
   // --- Productmix ---
   "prod.titel": ["Productmix", "Mix de produits"],

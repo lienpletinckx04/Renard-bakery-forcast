@@ -8,14 +8,14 @@ Een toepassing met een login, een database die dagelijks bijwerkt uit de bronsys
 
 ## Wat dit oplost
 
-Een bakkerij verkoopt via de toonbank, via Too Good To Go en via Deliveroo. Odoo kent alleen het eerste, berekent geen marge, en kijkt niet vooruit. Het gevolg is dat er geen enkele plek is waar de zaakvoerder ziet wat er echt binnenkomt, per kanaal, tegen welke marge, en wat er de komende dagen aankomt.
+Een bakkerij verkoopt via de toonbank en via Deliveroo. Odoo kent alleen het eerste, berekent geen marge, en kijkt niet vooruit. Het gevolg is dat er geen enkele plek is waar de zaakvoerder ziet wat er echt binnenkomt, per kanaal, tegen welke marge, en wat er de komende dagen aankomt.
 
 Dat is wat dit platform doet. Het is geen tweede versie van de Odoo-rapportering: het onderscheid zit in de ontbrekende kanalen, in de marge, en in de prognose.
 
 ## De lagen
 
 ```
-BRONNEN       Odoo (XML-RPC)   TGTG (pdf-dump)   Deliveroo (rapport, nog niet ontvangen)
+BRONNEN       Odoo (XML-RPC)   Deliveroo (rapport, nog niet ontvangen)
    -> INLAADLAAG      normaliseren naar het canonieke datamodel
    -> DATABASE        Postgres, bron van waarheid
    -> BEREKENING      nachtelijk: aggregaties, marge, prognose
@@ -63,7 +63,7 @@ platform/             Next.js-web-UI. Leest uitsluitend het contract, rekent noo
 db/migraties/         Postgres-migraties, oplopend genummerd
 scripts/              Uitvoerbare stappen: extract, canoniek, contract, nachtelijke sync
 tests/                Tests voor de Python-kant (platform/tests/ voor de UI)
-reports/              Gegenereerde rapporten (backtest, onvertaald, restwaarde)
+reports/              Gegenereerde rapporten (backtest, onvertaald)
 data/                 Gitignored. Ruwe brondata verlaat deze machine niet.
 ```
 

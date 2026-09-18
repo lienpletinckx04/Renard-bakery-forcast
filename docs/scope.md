@@ -14,12 +14,12 @@ Een financieel stuurplatform voor de bakkerij, waarop de zaakvoerder en de CFO z
 
 Het platform staat niet op een laptop en is geen rapport dat iemand doorstuurt. Het is een toepassing met een login, een database die dagelijks bijwerkt uit de bronsystemen, en een presentatielaag die in de huisstijl van het merk staat. In een latere fase komt daar een mobiele app op, en daar wordt nu al voor gebouwd.
 
-Wat het uitdrukkelijk **niet** is: een tweede versie van de Odoo-rapportering. Het onderscheid zit in de kanalen die Odoo niet kent (TGTG, Deliveroo), in de marge die Odoo niet berekent, en in de prognose die Odoo niet heeft. Twee van die drie zijn sinds 12 augustus smaller dan gehoopt: de marge wacht op invoer van de klant (add-on), en Deliveroo wacht op de export (vraag 36/49). Wat overblijft is TGTG als extra kanaal plus de gebackteste prognose — dat gesprek is in vraag 49 expliciet benoemd.
+Wat het uitdrukkelijk **niet** is: een tweede versie van de Odoo-rapportering. Het onderscheid zit in de kanalen die Odoo niet kent (Deliveroo), in de marge die Odoo niet berekent, en in de prognose die Odoo niet heeft. De marge wacht op invoer van de klant (add-on), en Deliveroo wacht op de export (vraag 36/49). Wat overblijft is de gebackteste prognose — dat gesprek is in vraag 49 expliciet benoemd. (TGTG was hier tot 18 september 2026 nog als extra kanaal genoemd; het is sindsdien uit scope, zie `beslissingen.md`.)
 
 ## De lagen
 
 ```
-BRONNEN            Odoo (XML-RPC)   TGTG (pdf-dump)   Deliveroo (export)
+BRONNEN            Odoo (XML-RPC)   Deliveroo (export)
       |
 INLAADLAAG         ophalen, normaliseren naar het canonieke datamodel, herbruikbaar en herhaalbaar
       |
@@ -41,7 +41,7 @@ De regel die deze opbouw draagt: **de UI rekent nooit.** Alles wat een scherm to
 | # | Deliverable | Klaar wanneer |
 |---|---|---|
 | D1 | **Data-audit** | **Geleverd 7 aug, hercontrole 12 aug.** Alle blokken beantwoord met gemeten cijfers |
-| D2 | **Inlaadlaag** | Odoo en TGTG landen in het canonieke datamodel, met tests. Deliveroo zodra de export er is |
+| D2 | **Inlaadlaag** | Odoo landt in het canonieke datamodel, met tests. Deliveroo zodra de export er is |
 | D3 | **Database** | Postgres met het datamodel, migraties in de repo, herbouwbaar met één commando |
 | D4 | **Nachtelijke berekening** | Eén run bouwt alle afgeleide tabellen opnieuw op uit de feiten. Draaiboek erbij |
 | D5 | **API en contract** | Elk scherm leest uit een genummerd JSON-contract, met tests op de vorm |
@@ -89,11 +89,10 @@ Alles daarboven — SSO, tweefactor, fijnmazige rechten per scherm, meerdere ves
 | Bron | Hoe | Frequentie | Stand |
 |---|---|---|---|
 | **Odoo** | XML-RPC, altijd een volledig extract met een poortwachter op `write_date` (beslist 17 aug: een dag die half opnieuw wordt opgehaald en geüpsert zou het dagtotaal stil corrumperen, zie `beslissingen.md`) | nachtelijk | Toegang werkt op preprod. Productie geblokkeerd op een betalende licentie (G6) |
-| **TGTG** | geen API. Pdf-dump uit het partnerportaal, geparst | **bevroren op de historiek t/m juli 2026** (blok 9 geschrapt op vraag van de opdrachtgever, 17 aug); het platform toont per kanaal tot wanneer de data loopt | **Binnen**: zeven jaar, 250 pdf's |
 | **Deliveroo** | export uit het partnerportaal in fase 1; API pas als er een reden voor is | eenmalig twaalf maanden, daarna te bekijken | **Niets ontvangen** (G4, vraag 36/49 — het twaalfmaandsvenster schuift dagelijks op) |
 | **Weer** | Open-Meteo, geen sleutel nodig | — | fase 2 |
 
-Over TGTG: er ís geen publieke API, dus dit blijft handwerk aan de kant van de bakker. Dat is geen tekortkoming van het platform maar een eigenschap van het kanaal, en het hoort zo in het opleverdocument te staan.
+**TGTG is uit scope** (18 september 2026, zie `beslissingen.md`): het kanaal is niet langer onderdeel van het platform. Het bevroor eerder op de historiek t/m juli 2026 (blok 9 geschrapt op vraag van de opdrachtgever, 17 aug); die historiek is intussen ook uit de productiedatabase verwijderd op vraag van de opdrachtgever.
 
 Over Deliveroo: het traject dat in het gesprek van 7 augustus beschreven is — partnergoedkeuring, Engelstalig, kostprijs — gaat over de **API**. Voor fase 1 volstaat een export uit het partnerportaal, en die kan de bakker zelf downloaden zonder goedkeuringstraject. Dat is de vraag die gesteld moet worden vóór iemand aan een integratie begint.
 
@@ -114,7 +113,7 @@ De vier toetsen zijn uitgevoerd (`scripts/kassa_analyse.py`, data-audit addendum
 - **Notificaties en herinneringen.**
 - **AI-uitleglaag** die de cijfers in natuurlijke taal duidt.
 - **Deliveroo-integratie via API.** Fase 1 werkt op export.
-- **TGTG-automatisering.** Er is geen API; de dump blijft handwerk.
+- **TGTG.** Uit scope sinds 18 september 2026, zie `beslissingen.md`.
 - **Weer- en locatiedata.**
 - **Koppeling met het bestelsysteem.**
 - **Meerdere vestigingen** met eigen gebruikers en eigen cijfers.
@@ -129,7 +128,7 @@ De vier toetsen zijn uitgevoerd (`scripts/kassa_analyse.py`, data-audit addendum
 |---|---|---|---|
 | G1 | Brutomarge of kostprijs per productgroep | elke margeweergave in D7 | **Gesloten als add-on** (12 aug, herziening vraag 19): de data bestaat niet bij de klant. De invoer (het kostenmodel op Instellingen) staat klaar; het margescherm toont onbeschikbaar tot iemand hem vult (vraag 50/51) |
 | G2 | Welke kassa is de bakkerij | het hele datamodel | **Gesloten 12 aug**: drie registers in één vestiging, gemeten en bevestigd. Alle drie tellen mee |
-| G3 | TGTG-export | kanaal `tgtg`, restwaarde | **Binnen en geparst 12 aug**: 250 pdf's, kanaal draait. Bevroren t/m juli 2026 sinds het schrappen van blok 9 (17 aug) |
+| G3 | TGTG-export | kanaal `tgtg`, restwaarde | **Vervallen (18 sep 2026)**: TGTG is uit scope, zie `beslissingen.md`. Was binnen en geparst 12 aug (250 pdf's), bevroren sinds het schrappen van blok 9 (17 aug) |
 | G4 | Deliveroo-export | kanaal `deliveroo`, volledig kanaaloverzicht | **Open — het urgentste punt van het project** (S1, vraag 36/49): het twaalfmaandsvenster schuift dagelijks op |
 | G5 | Synchroniseert de preprod met productie | de nachtelijke koppeling | **Open.** Vraag 27, aanname A14; beantwoordt zichzelf na de heropening (23 aug) |
 | G6 | Betalende Odoo-licentie voor productie | oplevering op echte data | **Open.** Vraag 22 |

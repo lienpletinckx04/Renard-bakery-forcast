@@ -11,7 +11,6 @@ de uitrol staat onderaan, het draaiboek zelf in `setup-supabase.md`._
 ## De keten, van bron tot scherm
 
 ```
-make tgtg          TGTG-pdf's (data/raw/TGTG overzicht) -> data/interim
 make extract       Odoo -> data/raw (vereist .env met Odoo-sleutel)
 make canoniek      bronnen -> canoniek model (+ agenda-verrijking als
                    data/raw/agenda.ics bestaat)
@@ -73,11 +72,13 @@ het platform toont.
   nachtelijke planning staat sinds 18 augustus uit** (het schedule-blok —
   cron 01:30 UTC, 03:30 Belgische zomertijd — is in het workflowbestand
   uitgecommentarieerd). De reden waarom hij uitstond, is sinds 19 augustus
-  weg: de runner miste de TGTG-bestanden en de beheerconfig, en die invoer is
-  intussen geregeld — het bevroren TGTG-kanaal komt uit de database terug, de
-  sluitingslijst staat in git, het kostenmodel wordt in de database bewaard,
-  en de krimpwacht van de contractlader weigert nu ook een inhoudelijk
-  verarmde schrijfbeurt. **Wat rest is één handeling die een mens hoort te
+  weg: de runner miste de beheerconfig, en die invoer is intussen geregeld —
+  de sluitingslijst staat in git, het kostenmodel wordt in de database
+  bewaard, en de krimpwacht van de contractlader weigert nu ook een
+  inhoudelijk verarmde schrijfbeurt. (Tot 18 september 2026 gold hetzelfde
+  voor het bevroren TGTG-kanaal, dat toen nog apart uit de database
+  terugkwam; met TGTG uit scope is dat mechanisme verdwenen.) **Wat rest is
+  één handeling die een mens hoort te
   doen en geen commit:** in GitHub één keer *Run workflow* (workflow_dispatch)
   drukken en die run groen zien; de optie "volledig" slaat de poortwachter
   over en laadt hoe dan ook. Pas daarna de drie schedule-regels in het bestand
@@ -141,26 +142,26 @@ nog aan werkt.
 
 | Wanneer | Wat | Hoe |
 |---|---|---|
-| wanneer er TGTG-pdf's zijn (geen vaste aanvoer meer, zie hieronder) | TGTG-pdf's binnenbrengen | pdf's in `data/raw/TGTG overzicht/`, dan `make tgtg && make alles` |
 | na elke bron-update | keten verversen | `make alles` |
 | bij nieuwe kosteninvoer | beheerder stelt kostencriteria samen en vult per productgroep percentages in op Instellingen | opslaan herrekent het contract vanzelf en zet de invoer in `data/config/kostenmodel.json` — dat bestand (net als `winkels.json` voor een eventuele winkelindeling) **bestaat pas zodra de beheerder het via het scherm invult**; zolang er niets is ingevuld, is er ook niets om te back-uppen. Vanaf de eerste invoer: **meenemen in elke back-up**, het is de enige handinvoer. (Het oudere `marges.json` is de v1-vorm met één brutomarge per groep; die invoer gaat niet verloren en verschijnt als "Totale kost") |
 | maandelijks met de hand; de sync-workflow doet het ook bij elke run (nu alleen handmatig — de nachtelijke planning staat uit, zie hierboven) | schoolvakanties verversen | `make vakanties` — haalt beide regimes bij de OpenHolidays-API. Nieuwe toekomstige periodes gaan er automatisch in; wijzigingen aan het verleden worden geweigerd tot je ze bewust toepast met `make vakanties FORCEER=1`, en dan hoort `make backtest-rapport` erachteraan omdat het trackrecord verschuift. Na elke wijziging: `make contract`. Loopt de kalender ooit te kort, dan meldt het prognosescherm dat zelf (dekkingswacht) |
 | bij een agenda-feed (vraag 46) | `AGENDA_ICS_URL` in `.env`, dan `make agenda && make canoniek` | het afwijkingsrapport verschijnt in `reports/` |
 
-## TGTG: bevroren kanaal, handwerk blijft mogelijk
+## TGTG: uit scope sinds 18 september 2026
 
-**Blok 9 (de ingestmailbox) is op 17 augustus geschrapt op vraag van Lien**,
-inclusief de periodieke TGTG-maandmail en de Deliveroo-commissiemail (S7/S8/S9
-zijn vervallen). Het gevolg, eerlijk opgeschreven: zonder aanvoer **bevriest
-het TGTG-kanaal op de geparste historiek tot en met juli 2026** en veroudert
-het vanaf dan zichtbaar. Het scherm behandelt dat niet als "geen data": een
-kanaal mét historiek buiten het venster meldt per kanaal tot wanneer zijn data
-loopt en dat er sindsdien niets meer is aangeleverd (harde regel 8).
+**Blok 9 (de ingestmailbox) is op 17 augustus 2026 geschrapt op vraag van
+Lien**, inclusief de periodieke TGTG-maandmail en de Deliveroo-commissiemail
+(S7/S8/S9 zijn vervallen). Het gevolg was dat het TGTG-kanaal bevroor op de
+geparste historiek tot en met juli 2026 en vanaf dan zichtbaar verouderde.
 
-Er gaat niets onherstelbaar verloren: TGTG bewaart de documenten zelf in
-MyStore. Wie het kanaal weer wil laten meelopen, haalt de pdf's daar op en
-volgt het handmatige pad uit de tabel hierboven — pdf's in
-`data/raw/TGTG overzicht/`, dan `make tgtg && make alles`.
+**Op 18 september 2026 is TGTG op vraag van de opdrachtgever volledig uit
+scope gehaald** (zie `beslissingen.md`). Het kanaal, de parser
+(`bakkerij/sources/tgtg_parse.py`), de bijhorende scripts (`make tgtg`,
+`make tgtg-restwaarde`) en het bevriezingsmechanisme (`bakkerij/db/bevroren.py`)
+zijn verwijderd, en de historische data (1.872 rijen, € 106.415,75) is uit de
+productiedatabase gewist. Er is geen handmatig pad meer om dit kanaal terug te
+laten meelopen; wie dat ooit alsnog wil, bouwt het opnieuw vanaf het
+onderzoek in `docs/koppelingen.md`.
 
 ## Twee datums waarop iets ophoudt
 

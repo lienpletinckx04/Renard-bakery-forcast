@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Omgeving en geheimen -- gaan nooit de repo in (harde regel, CLAUDE.md)
+.env
+.env.*
+!.env.example
+
+# Klantdata -- harde regel 2: gaat nooit de repo in. README's en .gitkeep
+# blijven wel getrackt, dat is al zo en verandert niet door deze regel.
+data/*
+!data/README.md
+!data/*/
+data/*/*
+!data/*/.gitkeep
+
+# Gegenereerde rapporten
+reports/*
+!reports/.gitkeep
+
+# macOS
+.DS_Store

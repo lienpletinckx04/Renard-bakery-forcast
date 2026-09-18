@@ -27,8 +27,8 @@ WAT NIET VERTAALD WORDT, EN DAT IS EEN BESLISSING
 Productnamen komen uit Odoo en blijven staan zoals de bakkerij ze heeft
 ingevoerd. "Pistolet" heet in het Nederlands ook pistolet, en een
 machinevertaling van het assortiment zou namen produceren die op geen enkele
-kassabon staan. Hetzelfde geldt voor kanaalnamen die merknamen zijn (TGTG,
-Deliveroo).
+kassabon staan. Hetzelfde geldt voor kanaalnamen die merknamen zijn
+(Deliveroo).
 
 Getallen en bedragen blijven ook gelijk opgemaakt. Zie de noot in
 `platform/lib/taal.ts`.
@@ -174,7 +174,6 @@ def procent_tekst(fractie: float, decimalen: int = 1) -> str:
 KANAALNAMEN = {
     "winkel": {"nl": "Winkel", "fr": "Magasin"},
     "deliveroo": {"nl": "Deliveroo", "fr": "Deliveroo"},
-    "tgtg": {"nl": "Too Good To Go", "fr": "Too Good To Go"},
     "overig": {"nl": "Overig", "fr": "Autres"},
 }
 

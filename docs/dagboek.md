@@ -6,6 +6,16 @@
 >
 > Vier regels volstaan. Als het langer wordt, is het een rapport en hoort het in `docs/`.
 
+### 2026-09-18, Too Good To Go eruit, en de repo overgedragen aan Lien
+
+**Gedaan:** codebase-inventaris voor Lien (stap 1 van haar overname): projectstructuur, datamodel, bronnen, dashboardschermen, forecastmodel en env vars in kaart gebracht en tegen de echte code geverifieerd (niet enkel de docs). Op haar uitdrukkelijke beslissing is Too Good To Go daarna volledig uit het platform gehaald: de historische omzet uit productie verwijderd (1.872 rijen, € 106.415,75, plus 83 rijen kanaalkost, via migratie `017_tgtg_verwijderd.sql`, met de kanaal-constraint aangepast naar `winkel`/`deliveroo`/`overig`), en de code — parser, extractiescripts, elke tgtg-tak in de berekenings- en contractlaag, het bevriezingsmechanisme `bakkerij/db/bevroren.py`, en de frontend — volledig verwijderd. Zie `beslissingen.md` voor de details en de afweging. Test- en linttoestand na afloop gecontroleerd: 766 backend-tests groen, 188/188 frontend-tests, geen nieuwe lintmeldingen.
+**Geblokkeerd door:** niets nieuws vandaag; de bestaande openstaande punten (Odoo-productiesleutel — Lien heeft er net één aangemaakt, Deliveroo-historiek verwerken, sluitingskalender t/m 2027) staan in `todo.md`/`open-punten.md`.
+**Beslissing:** TGTG volledig uit scope, inclusief historische data — zie `beslissingen.md`, entry van vandaag.
+**Morgen:** met Lien verder door stap 2 (Odoo naar productie) en stap 3 (Deliveroo-data controleren) van haar overnametraject.
+**Uren:** in te vullen door Kwinten
+
+---
+
 ### 2026-08-28, de eerste Deliveroo-cijfers nagerekend, en het platform kan voortaan bestanden ontvangen
 
 **Er is Deliveroo-data, en ze is doorgerekend.** Mathias Joosten van Deliveroo stuurde op 27 augustus twee bestanden door via Lien. Ze zijn gelezen en tegen elkaar gecontroleerd: dertien maanden, van augustus 2025 tot en met augustus 2026, met € 864.391,95 verkoopwaarde, 33.060 bestellingen en 288 verschillende artikelen. Alle dertien maandbedragen sluiten op de cent en veertien van de vijftien restaurant-maandcombinaties komen tot op de euro overeen met het tweede document. Daarmee is voor het eerst te zeggen hoe groot dit kanaal werkelijk is: over dezelfde twaalf maanden € 857.042 tegen € 4.320.789 winkelomzet, grofweg een vijfde — een orde van grootte meer dan TGTG, dat op € 106.416 over zeven jaar staat. Dat is meteen het grootste kanaal dat het platform vandaag nog niet toont.

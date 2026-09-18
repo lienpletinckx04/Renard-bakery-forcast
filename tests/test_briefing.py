@@ -163,10 +163,9 @@ def _alle_briefings() -> list[bf.Briefing]:
             versheid=versheid,
             bronstanden=[
                 Bronstand("odoo-kassa", GEMETEN_TOT, 100, "stil", "toel"),
-                Bronstand("tgtg", dt.date(2026, 6, 1), 10, "achter", "toel"),
+                Bronstand("marktkraam", dt.date(2026, 6, 1), 10, "achter", "toel"),
                 Bronstand("deliveroo", None, 0, "ontbreekt", "toel"),
             ],
-            tgtg_kost_bekend=False,
         ),
         bf.producten(
             versheid=versheid,
@@ -612,7 +611,6 @@ def test_een_kanaal_zonder_data_vraagt_om_iemand():
     briefing = bf.kanalen(
         versheid=_versheid(),
         bronstanden=[Bronstand("deliveroo", None, 0, "ontbreekt", "toel")],
-        tgtg_kost_bekend=True,
     )
     punt = briefing.punten[0]
     assert punt.status == "actie"
@@ -625,8 +623,7 @@ def test_een_verse_bron_levert_geen_punt():
     briefing = bf.kanalen(
         versheid=_versheid(),
         bronstanden=[Bronstand("odoo-kassa", GEMETEN_TOT, 100, "vers", "toel"),
-                     Bronstand("tgtg", GEMETEN_TOT, 10, "gesloten", "toel")],
-        tgtg_kost_bekend=True,
+                     Bronstand("marktkraam", GEMETEN_TOT, 10, "gesloten", "toel")],
     )
     assert briefing.punten == []
 
@@ -634,20 +631,12 @@ def test_een_verse_bron_levert_geen_punt():
 def test_een_achterlopende_bron_telt_de_dagen_sinds_de_laatste_meting():
     briefing = bf.kanalen(
         versheid=_versheid(),
-        bronstanden=[Bronstand("tgtg", dt.date(2026, 6, 1), 10, "achter", "x")],
-        tgtg_kost_bekend=True,
+        bronstanden=[Bronstand("marktkraam", dt.date(2026, 6, 1), 10, "achter", "x")],
     )
     punt = briefing.punten[0]
     assert punt.bedrag == str((VANDAAG - dt.date(2026, 6, 1)).days)
     assert punt.soort == "aantal"
     assert punt.status == "let_op"
-
-
-def test_zonder_kanaalkost_is_de_commissie_een_punt():
-    briefing = bf.kanalen(versheid=_versheid(), bronstanden=[],
-                          tgtg_kost_bekend=False)
-    assert len(briefing.punten) == 1
-    assert briefing.punten[0].bedrag is None
 
 
 # --- Productmix -------------------------------------------------------------

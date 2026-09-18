@@ -49,7 +49,6 @@ ROLPATRONEN: dict[str, list[str]] = {
 KANAAL_HINTS = {
     "winkel": [r"winkel", r"shop", r"pos", r"toonbank", r"store", r"kassa"],
     "deliveroo": [r"deliveroo", r"delivery", r"levering"],
-    "tgtg": [r"too\s*good", r"tgtg", r"toogoodtogo"],
 }
 
 

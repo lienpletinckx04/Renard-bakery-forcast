@@ -193,11 +193,11 @@ def ontbrekende_sleutels(
     in één transactie, en dat is hier de juiste vorm: een winkel die uit de
     indeling verdwijnt, hoort ook uit de database te verdwijnen. Maar diezelfde
     vorm maakt een verarmde bouw gevaarlijk. De nachtelijke sync draait op een
-    GitHub-runner, en die heeft `data/config/` en de TGTG-bestanden niet -- die
-    staan gitignored en alleen op de machine van de bouwer. Bouwt de runner
-    daar een contract zonder TGTG en zonder kostenmodel, dan schrijft hij dat
-    met succes over het goede heen: een groene run, en minder cijfers op het
-    scherm. Geen fout, geen melding, niemand die het merkt.
+    GitHub-runner, en die heeft `data/config/` niet -- dat staat gitignored en
+    alleen op de machine van de bouwer. Bouwt de runner daar een contract
+    zonder kostenmodel, dan schrijft hij dat met succes over het goede heen:
+    een groene run, en minder cijfers op het scherm. Geen fout, geen melding,
+    niemand die het merkt.
 
     Deze functie is opzettelijk dom en puur: ze vergelijkt sleutels, niet
     inhoud. Verdwijnt er een scherm, een taal of een winkel, dan is dat een
@@ -213,8 +213,8 @@ def ontbrekende_sleutels(
 # --- de tweede helft van de wacht: dezelfde sleutels, armere inhoud ----------
 #
 # `ontbrekende_sleutels` vangt het geval waarin er antwoorden verdwijnen. Het
-# gevaarlijkere geval is dat er niets verdwijnt: een runner zonder de
-# TGTG-bestanden bouwt exact dezelfde zestien sleutels, met exact dezelfde
+# gevaarlijkere geval is dat er niets verdwijnt: een runner zonder een
+# kanaalbron bouwt exact dezelfde zestien sleutels, met exact dezelfde
 # schermen, en met één kanaal minder erin. Sleutel voor sleutel is dat contract
 # compleet; inhoudelijk is het armer dan wat er stond, en het gaat er
 # stilzwijgend overheen.

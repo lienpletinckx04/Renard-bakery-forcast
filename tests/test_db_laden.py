@@ -316,7 +316,7 @@ def test_ontdubbelen_telt_meerdere_kolommen_tegelijk_op():
 def test_samengestelde_sleutel():
     df = pd.DataFrame({
         "datum": ["2026-01-01", "2026-01-01", "2026-01-02"],
-        "kanaal": ["winkel", "tgtg", "winkel"],
+        "kanaal": ["winkel", "deliveroo", "winkel"],
         "omzet": [1, 2, 4],
     })
     uit, weg = ontdubbel(df, ["datum", "kanaal"], ["omzet"])

@@ -2,22 +2,24 @@
 
 _Geschreven 12 augustus 2026. Dit document zegt waar elk stuk draait en waarom daar. Wat er gebouwd wordt staat in `scope.md`, in welke volgorde in `plan-fase1.md`._
 
-> **Stand 19 augustus 2026.** De tekening en de afwegingen hieronder zijn op deze datum bijgewerkt aan wat er werkelijk draait: de sync is een volledig extract met een poortwachter op `write_date` (geen incrementeel extract, beslist 17 aug), de cron staat op 01:30 UTC maar is nog uitgeschakeld — de runner-invoer is sinds 19 aug geregeld, wat rest is één handmatige run in GitHub Actions die groen moet komen (zie `beheerdraaiboek.md`), Deliveroo loopt via een download die Sophie zelf uit Partner Hub haalt (S1), TGTG is bevroren op de historiek t/m juli 2026 (blok 9 geschrapt 17 aug), en het hostingmodel is beslist: een project binnen de organisatie van asklien.ai (vraag 40, zie `scope.md` derde herziening).
+> **Stand 19 augustus 2026.** De tekening en de afwegingen hieronder zijn op deze datum bijgewerkt aan wat er werkelijk draait: de sync is een volledig extract met een poortwachter op `write_date` (geen incrementeel extract, beslist 17 aug), de cron staat op 01:30 UTC maar is nog uitgeschakeld — de runner-invoer is sinds 19 aug geregeld, wat rest is één handmatige run in GitHub Actions die groen moet komen (zie `beheerdraaiboek.md`), Deliveroo loopt via een download die Sophie zelf uit Partner Hub haalt (S1), en het hostingmodel is beslist: een project binnen de organisatie van asklien.ai (vraag 40, zie `scope.md` derde herziening).
+>
+> **Stand 18 september 2026.** TGTG is uit scope (zie `beslissingen.md`); het kanaal, zijn bevroren-mechanisme en de historische data zijn verwijderd. De tekening hieronder toont daarom alleen Odoo en Deliveroo als bron.
 
 ## De tekening
 
 ```
   BRONNEN
-  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐
-  │ Odoo             │  │ TGTG             │  │ Deliveroo            │
-  │ XML-RPC          │  │ pdf-dump         │  │ CSV's uit Partner    │
-  │ volledig extract,│  │ bevroren t/m     │  │ Hub, door Sophie     │
-  │ poortwachter op  │  │ juli 2026        │  │ zelf; nog niet       │
-  │ write_date       │  │ (blok 9 weg)     │  │ ontvangen (S1)       │
-  └────────┬─────────┘  └────────┬─────────┘  └──────────┬───────────┘
-           │                     │                       │
-           └─────────────────────┼───────────────────────┘
-                                 ▼
+  ┌──────────────────┐  ┌──────────────────────┐
+  │ Odoo             │  │ Deliveroo            │
+  │ XML-RPC          │  │ CSV's uit Partner    │
+  │ volledig extract,│  │ Hub, door Sophie     │
+  │ poortwachter op  │  │ zelf; nog niet       │
+  │ write_date       │  │ ontvangen (S1)       │
+  └────────┬─────────┘  └──────────┬───────────┘
+           │                       │
+           └───────────┬───────────┘
+                        ▼
                    ┌─────────────────────────────┐
                    │  INLAADLAAG + BEREKENING    │   Python, pandas
                    │  GitHub Actions, 01:30 UTC  │   NIET op Vercel
@@ -49,12 +51,12 @@ _Geschreven 12 augustus 2026. Dit document zegt waar elk stuk draait en waarom d
                     └───────────────────────┘
 
   BLIJFT LOKAAL, gaat nooit naar de cloud en nooit in git:
-  de ruwe Odoo-extract, de 250 TGTG-pdf's, het verzekeringsextract
+  de ruwe Odoo-extract, het verzekeringsextract
 ```
 
 ## Waarom de ETL niet op Vercel draait
 
-Vercel is serverless Node met korte tijdslimieten. De inlaadlaag is Python met pandas, parst 250 pdf's en praat XML-RPC met Odoo. Dat past daar niet in, en het erin wringen levert een fragiele constructie op die bij elke groei opnieuw stukgaat.
+Vercel is serverless Node met korte tijdslimieten. De inlaadlaag is Python met pandas en praat XML-RPC met Odoo. Dat past daar niet in, en het erin wringen levert een fragiele constructie op die bij elke groei opnieuw stukgaat.
 
 Drie opties, in volgorde van voorkeur:
 
@@ -64,7 +66,7 @@ Drie opties, in volgorde van voorkeur:
 | Kleine VPS met cron | alternatief | Een paar euro per maand, maar het is een machine die iemand moet onderhouden en die bij overdracht apart geregeld moet worden |
 | Supabase Edge Functions | afgeraden | Deno/TypeScript. Zou betekenen dat de hele inlaadlaag herschreven wordt in een taal die slechter is in dataverwerking |
 
-De cron staat op 01:30 UTC, maar is sinds 18 augustus uitgeschakeld (het schedule-blok is uitgecommentarieerd). De reden — de runner miste de TGTG-bestanden en de beheerconfig — is sinds 19 augustus weg: het bevroren TGTG-kanaal komt uit de database, de sluitingslijst staat in git en het kostenmodel wordt in de database bewaard. Wat rest is één handmatige run via workflow_dispatch die groen komt; pas daarna gaat het schedule-blok aan. Als hij draait, geldt: zolang de bakkerij dicht is, is er niets bij te werken, en de poortwachter maakt dat zichtbaar in de logs in plaats van stil.
+De cron staat op 01:30 UTC, maar is sinds 18 augustus uitgeschakeld (het schedule-blok is uitgecommentarieerd). De reden — de runner miste de beheerconfig — is sinds 19 augustus weg: de sluitingslijst staat in git en het kostenmodel wordt in de database bewaard. (Tot 18 september 2026 gold hetzelfde voor het bevroren TGTG-kanaal, dat toen nog apart uit de database terugkwam; dat mechanisme is met het kanaal zelf verdwenen.) Wat rest is één handmatige run via workflow_dispatch die groen komt; pas daarna gaat het schedule-blok aan. Als hij draait, geldt: zolang de bakkerij dicht is, is er niets bij te werken, en de poortwachter maakt dat zichtbaar in de logs in plaats van stil.
 
 ## Wat waar staat
 

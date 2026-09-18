@@ -9,10 +9,10 @@ WAAROM DEZE MODULE BESTAAT. Deze drie functies stonden tot 18 augustus 2026 in
 `bakkerij/report/pdf.py`, de WeasyPrint-bouwer van het CFO-rapport. Die bouwer
 is die dag opgeheven: het rapport is een weergave in het platform geworden
 (`platform/app/rapport/page.tsx`), en de opmaak van cijfers op een scherm hoort
-in `platform/lib/format.ts`. Wat overbleef, is dat `scripts/tgtg_restwaarde.py`
-deze omzetting nog nodig heeft voor zijn markdown-tabel. Die functie hoort dan
-in een module over opmaak, niet in een module over een rapport dat niet meer
-bestaat.
+in `platform/lib/format.ts`. Wat overbleef, is deze omzetting voor scripts die
+zelf een tabel afdrukken naar de terminal of naar markdown. Die functies horen
+dan in een module over opmaak, niet in een module over een rapport dat niet
+meer bestaat.
 
 DE TEGENHANGER. `platform/lib/format.ts` doet hetzelfde voor de schermen, en de
 tests hier en daar leggen dezelfde uitkomsten vast ("€ 1.234,56", "12,3 %").

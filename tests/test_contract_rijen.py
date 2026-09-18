@@ -162,7 +162,7 @@ def test_een_verdwenen_taal_wordt_gemeld():
 SLEUTEL = ("kanalen", "nl", "")
 
 
-def _rijk(bronnen=("tgtg", "winkel"), onbeschikbaar=()):
+def _rijk(bronnen=("deliveroo", "winkel"), onbeschikbaar=()):
     """Een Rijkdom zoals de contractbouw hem zou opleveren."""
     return cr.rijkdom_uit_velden(
         list(bronnen), [{"veld": v, "reden": "..."} for v in onbeschikbaar]
@@ -172,12 +172,12 @@ def _rijk(bronnen=("tgtg", "winkel"), onbeschikbaar=()):
 def test_rijkdom_uit_json_leest_de_twee_velden():
     antwoord = json.dumps({
         "versie": 1,
-        "bron": ["tgtg", "winkel"],
+        "bron": ["deliveroo", "winkel"],
         "onbeschikbaar": [{"veld": "marge_per_groep", "reden": "geen kosten"}],
         "data": {"van alles": "wat hier niet toe doet"},
     })
     r = cr.rijkdom_uit_json(antwoord)
-    assert r.bronnen == frozenset({"tgtg", "winkel"})
+    assert r.bronnen == frozenset({"deliveroo", "winkel"})
     assert r.ontbrekende_invoer == frozenset({"marge_per_groep"})
 
 
@@ -201,14 +201,14 @@ def test_dezelfde_bouw_is_geen_verarming():
 
 
 def test_een_verdwenen_bron_wordt_gemeld():
-    """Het runner-scenario: zonder data/interim/ bouwt de sync exact dezelfde
-    veertien sleutels, met TGTG eruit."""
-    bestaand = {SLEUTEL: _rijk(("tgtg", "winkel"))}
+    """Het runner-scenario: een omgeving zonder kanaalbron bouwt exact
+    dezelfde veertien sleutels, met Deliveroo eruit."""
+    bestaand = {SLEUTEL: _rijk(("deliveroo", "winkel"))}
     nieuw = {SLEUTEL: _rijk(("winkel",))}
     [gevonden] = cr.verarming(bestaand, nieuw)
     assert gevonden.sleutel == SLEUTEL
-    assert gevonden.verloren_bronnen == frozenset({"tgtg"})
-    assert "tgtg" in gevonden.beschrijf()
+    assert gevonden.verloren_bronnen == frozenset({"deliveroo"})
+    assert "deliveroo" in gevonden.beschrijf()
 
 
 def test_een_weggevallen_kostenmodel_wordt_gemeld():
@@ -222,7 +222,7 @@ def test_rijker_worden_mag_stilzwijgend():
     """De eerste nacht ná de Deliveroo-historiek hoort niemand wakker te
     maken, en evenmin de eerste nacht ná het invullen van het kostenmodel."""
     bestaand = {SLEUTEL: _rijk(("winkel",), onbeschikbaar=("marge_per_groep",))}
-    nieuw = {SLEUTEL: _rijk(("deliveroo", "tgtg", "winkel"))}
+    nieuw = {SLEUTEL: _rijk(("deliveroo", "overig", "winkel"))}
     assert cr.verarming(bestaand, nieuw) == []
 
 
@@ -240,10 +240,10 @@ def test_een_lege_bestaande_tabel_blokkeert_de_eerste_run_niet():
 
 def test_de_melding_draagt_geen_inhoud():
     """Alleen machinewaarden: scherm, taal, winkel, kanaal, veldnaam."""
-    bestaand = {SLEUTEL: _rijk(("tgtg", "winkel"))}
+    bestaand = {SLEUTEL: _rijk(("deliveroo", "winkel"))}
     nieuw = {SLEUTEL: _rijk(("winkel",), onbeschikbaar=("marge_per_groep",))}
     regel = cr.verarming(bestaand, nieuw)[0].beschrijf()
-    assert regel == "kanalen/nl (bron weg: tgtg; invoer weg: marge_per_groep)"
+    assert regel == "kanalen/nl (bron weg: deliveroo; invoer weg: marge_per_groep)"
 
 
 def test_verarming_staat_op_vaste_volgorde():

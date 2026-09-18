@@ -7,7 +7,7 @@ De deliverable is een **toepassing met een login**: een database die dagelijks b
 
 **De baklijst is geschrapt op 12 augustus 2026.** Eerdere versies van deze gids zeiden dat wie dit als dashboardproject behandelt het verkeerde ding bouwt. Dat is achterhaald: het dashboard *is* het ding. Het denkwerk over de beslislaag blijft in `model-ontwerp.md` staan omdat het de waarde van een latere fase bepaalt, maar het wordt in fase 1 niet gebouwd.
 
-Wat het platform onderscheidt van de Odoo-rapportering die er al is: de kanalen die Odoo niet kent (TGTG, Deliveroo), de marge die Odoo niet berekent, en de prognose die Odoo niet heeft.
+Wat het platform onderscheidt van de Odoo-rapportering die er al is: de kanalen die Odoo niet kent (Deliveroo), de marge die Odoo niet berekent, en de prognose die Odoo niet heeft.
 
 ## Harde regels (niet-onderhandelbaar)
 
@@ -22,7 +22,7 @@ Wat het platform onderscheidt van de Odoo-rapportering die er al is: de kanalen 
 
 ## De lagen (volgorde niet omgooien)
 ```
-1. Inlaadlaag      -> Odoo + TGTG naar het canonieke datamodel, met tests
+1. Inlaadlaag      -> Odoo naar het canonieke datamodel, met tests
 2. Database        -> Postgres, migraties in de repo, herbouwbaar met één commando
 3. Berekening      -> nachtelijk, alle afgeleide tabellen opnieuw uit de feiten
 4. API / contract  -> genummerde JSON-antwoorden, klein en voorgeaggregeerd
@@ -66,7 +66,7 @@ kosten:    productgroep | criterium | pct             (kostenmodel, door de behe
 winkels:   winkel | filialen                          (optionele indeling; zonder config één geheel)
 weer:      datum | locatie | tmax | neerslag_mm | ...                (fase 2)
 ```
-`kanaal` is een van: `winkel`, `deliveroo`, `tgtg`, `overig`. De kanaalsplitsing is niet cosmetisch: elk kanaal heeft een andere marge, en het platform toont die apart.
+`kanaal` is een van: `winkel`, `deliveroo`, `overig`. De kanaalsplitsing is niet cosmetisch: elk kanaal heeft een andere marge, en het platform toont die apart.
 
 **Alle drie de kassa's tellen mee.** De aanname dat twee van de drie andere concepten waren is op 12 augustus gemeten en weerlegd: alle drie verkopen hetzelfde bakkerijassortiment in vrijwel dezelfde verhoudingen (zie `data-audit.md` addendum 3). Filteren op één kassa zou tweederde van de bakkerijomzet weggooien. Ze worden opgeteld tot één geheel; `filiaal_id` blijft in het model bestaan tot de opdrachtgever bevestigt of het registers of vestigingen zijn (vraag 18).
 

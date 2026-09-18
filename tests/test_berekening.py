@@ -86,13 +86,13 @@ def test_dagtotalen_telt_per_datum_en_kanaal():
     verkopen = _verkopen([
         ("2025-01-06", "10", "Brood", "winkel", 2.0, 6.0),
         ("2025-01-06", "11", "Koek", "winkel", 1.0, 4.0),
-        ("2025-01-06", "70", "Pakket", "tgtg", 1.0, 3.0),
+        ("2025-01-06", "70", "Pakket", "deliveroo", 1.0, 3.0),
     ])
     kal = canoniek.bouw_kalender(verkopen)
     uit = bk.dagtotalen(bk.open_verkopen(verkopen, kal)).set_index("kanaal")
     assert uit.loc["winkel", "omzet"] == pytest.approx(10.0)
     assert uit.loc["winkel", "stuks"] == pytest.approx(3.0)
-    assert uit.loc["tgtg", "omzet"] == pytest.approx(3.0)
+    assert uit.loc["deliveroo", "omzet"] == pytest.approx(3.0)
 
 
 def test_peildatum_is_de_laatste_gemeten_dag_en_niet_vandaag():
@@ -103,7 +103,7 @@ def test_peildatum_is_de_laatste_gemeten_dag_en_niet_vandaag():
 
 
 def test_peildatum_zonder_data_faalt_luid():
-    verkopen = _dagen([100.0] * 5, kanaal="tgtg")
+    verkopen = _dagen([100.0] * 5, kanaal="deliveroo")
     kal = canoniek.bouw_kalender(verkopen)
     with pytest.raises(ValueError, match="Geen gemeten dagen"):
         bk.peildatum(bk.open_verkopen(verkopen, kal), "winkel")
@@ -199,13 +199,13 @@ def test_maandomzet_geeft_het_aantal_open_dagen_mee():
 def test_kanaalverdeling_telt_op_tot_honderd_procent():
     verkopen = _verkopen([
         ("2025-01-06", "10", "Brood", "winkel", 1.0, 75.0),
-        ("2025-01-06", "70", "Pakket", "tgtg", 1.0, 25.0),
+        ("2025-01-06", "70", "Pakket", "deliveroo", 1.0, 25.0),
     ])
     kal = canoniek.bouw_kalender(verkopen)
     totalen = bk.dagtotalen(bk.open_verkopen(verkopen, kal))
     per = bk.kanaalverdeling(totalen, pd.Timestamp("2025-01-06")).set_index("kanaal")
     assert per.loc["winkel", "aandeel_pct"] == pytest.approx(75.0)
-    assert per.loc["tgtg", "aandeel_pct"] == pytest.approx(25.0)
+    assert per.loc["deliveroo", "aandeel_pct"] == pytest.approx(25.0)
 
 
 def test_topproducten_rangschikt_op_omzet():
@@ -643,11 +643,11 @@ def test_concentratie_telt_de_kop_en_de_staart():
 
 
 def test_concentratie_kijkt_alleen_naar_het_gevraagde_kanaal():
-    """Een groot TGTG-pakket mag de winkelconcentratie niet vertekenen."""
+    """Een grote Deliveroo-order mag de winkelconcentratie niet vertekenen."""
     rijen = [
         ("2025-01-06", "1", "Brood", "winkel", 1.0, 50.0),
         ("2025-01-06", "2", "Croissant", "winkel", 1.0, 50.0),
-        ("2025-01-06", "70", "Pakket", "tgtg", 1.0, 500.0),
+        ("2025-01-06", "70", "Pakket", "deliveroo", 1.0, 500.0),
     ]
     uit = bk.concentratie(_open_vk(rijen), pd.Timestamp("2025-01-06"))
     assert uit.totaal_producten == 2
@@ -1046,18 +1046,18 @@ def test_periodeblok_zonder_meting_heeft_geen_gemiddelde():
 
 # --- kanaalfinanciën -------------------------------------------------------------
 
-def test_kanaalfinancien_maakt_de_tgtg_wig_zichtbaar():
-    """De canonieke TGTG-omzet is netto; bruto = netto + stuks × commissie
+def test_kanaalfinancien_maakt_de_deliveroo_wig_zichtbaar():
+    """De canonieke Deliveroo-omzet is netto; bruto = netto + stuks × commissie
     van de maand waarin de verkoop viel."""
     rijen = [("2025-01-0" + str(d), "10", "Brood", "winkel", 1.0, 100.0)
              for d in range(1, 6)]
-    rijen += [("2025-01-0" + str(d), "99", "Verrassingszak", "tgtg", 2.0, 8.0)
+    rijen += [("2025-01-0" + str(d), "99", "Bestelling", "deliveroo", 2.0, 8.0)
               for d in range(1, 6)]
     verkopen = _verkopen(rijen)
     kal = canoniek.bouw_kalender(verkopen)
     totalen = bk.dagtotalen(bk.open_verkopen(verkopen, kal))
     kost = pd.DataFrame({
-        "kanaal": ["tgtg"], "maand": ["2025-01"], "stuks": [10.0],
+        "kanaal": ["deliveroo"], "maand": ["2025-01"], "stuks": [10.0],
         "bruto_per_stuk": [5.69], "commissie_per_stuk": [1.69],
         "inhouding_pct": [0.297],
     })
@@ -1066,15 +1066,15 @@ def test_kanaalfinancien_maakt_de_tgtg_wig_zichtbaar():
     assert fin["winkel"].commissie == Decimal("0.00")
     assert fin["winkel"].bruto == fin["winkel"].netto == Decimal("500.00")
     assert fin["winkel"].inhouding_pct is None
-    # tgtg: 5 dagen × 2 stuks × € 1,69 = € 16,90 commissie op € 40 netto
-    assert fin["tgtg"].netto == Decimal("40.00")
-    assert fin["tgtg"].commissie == Decimal("16.90")
-    assert fin["tgtg"].bruto == Decimal("56.90")
-    assert fin["tgtg"].inhouding_pct == Decimal("29.7")
+    # deliveroo: 5 dagen × 2 stuks × € 1,69 = € 16,90 commissie op € 40 netto
+    assert fin["deliveroo"].netto == Decimal("40.00")
+    assert fin["deliveroo"].commissie == Decimal("16.90")
+    assert fin["deliveroo"].bruto == Decimal("56.90")
+    assert fin["deliveroo"].inhouding_pct == Decimal("29.7")
 
 
-def test_kanaalfinancien_zonder_kosttabel_rekent_tgtg_niet_bruto():
-    rijen = [("2025-01-01", "99", "Zak", "tgtg", 2.0, 8.0),
+def test_kanaalfinancien_zonder_kosttabel_rekent_deliveroo_niet_bruto():
+    rijen = [("2025-01-01", "99", "Bestelling", "deliveroo", 2.0, 8.0),
              ("2025-01-01", "10", "Brood", "winkel", 1.0, 100.0)]
     verkopen = _verkopen(rijen)
     kal = canoniek.bouw_kalender(verkopen)
@@ -1082,7 +1082,7 @@ def test_kanaalfinancien_zonder_kosttabel_rekent_tgtg_niet_bruto():
     fin = {f.kanaal: f for f in bk.kanaalfinancien(
         totalen, None, pd.Timestamp("2025-01-01"), dagen=5)}
     # zonder tarief geen wig: commissie nul, en de contractlaag zet de reden erbij
-    assert fin["tgtg"].commissie == Decimal("0.00")
+    assert fin["deliveroo"].commissie == Decimal("0.00")
 
 
 # --- drill-down per groep ---------------------------------------------------------
@@ -1114,43 +1114,6 @@ def test_groepen_detail_product_zonder_groep_valt_onder_overige():
     detail = bk.groepen_detail(open_v, pd.Series(dtype=str),
                                pd.Timestamp("2025-01-01"), dagen=1)
     assert list(detail["groep"]) == ["Overige"]
-
-
-# --- TGTG-restwaarde per kwartaal (A5) --------------------------------------------
-
-def test_tgtg_restwaarde_per_kwartaal_met_en_zonder_kosttabel():
-    rijen = [("2025-01-15", "99", "Zak", "tgtg", 2.0, 8.0),
-             ("2025-02-15", "99", "Zak", "tgtg", 1.0, 4.0),
-             ("2025-04-01", "99", "Zak", "tgtg", 1.0, 4.0),
-             ("2025-01-15", "10", "Brood", "winkel", 1.0, 100.0)]
-    verkopen = _verkopen(rijen)
-    kal = canoniek.bouw_kalender(verkopen)
-    totalen = bk.dagtotalen(bk.open_verkopen(verkopen, kal))
-    kost = pd.DataFrame({
-        "kanaal": ["tgtg"], "maand": ["2025-01"], "stuks": [3.0],
-        "bruto_per_stuk": [5.69], "commissie_per_stuk": [1.69],
-        "inhouding_pct": [0.297],
-    })
-    tabel = bk.tgtg_restwaarde_per_kwartaal(totalen, kost)
-    assert list(tabel["kwartaal"]) == ["2025K1", "2025K2"]
-    k1 = tabel.iloc[0]
-    assert k1["netto"] == Decimal("12.00")
-    # 3 stuks × € 1,69 (jan-tarief geldt ook voor feb, terugvalregel)
-    assert k1["commissie"] == Decimal("5.07")
-    assert k1["bruto"] == Decimal("17.07")
-    # zonder kosttabel: netto blijft, wig eerlijk afwezig
-    kaal = bk.tgtg_restwaarde_per_kwartaal(totalen, None)
-    assert kaal.iloc[0]["netto"] == Decimal("12.00")
-    assert kaal.iloc[0]["commissie"] is None
-    assert kaal.iloc[0]["bruto"] is None
-
-
-def test_tgtg_restwaarde_zonder_tgtg_is_leeg():
-    rijen = [("2025-01-15", "10", "Brood", "winkel", 1.0, 100.0)]
-    verkopen = _verkopen(rijen)
-    kal = canoniek.bouw_kalender(verkopen)
-    totalen = bk.dagtotalen(bk.open_verkopen(verkopen, kal))
-    assert bk.tgtg_restwaarde_per_kwartaal(totalen, None).empty
 
 
 def test_kerncijfers_bestaan_in_het_frans_met_dezelfde_cijfers():

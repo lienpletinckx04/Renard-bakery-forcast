@@ -188,7 +188,6 @@ def _briefings(*, open_verkopen, dagtotalen, groepen, kalender, verkopen,
         ).als_dict(),
         "kanalen": bf.kanalen(
             versheid=versheid, bronstanden=bronstanden,
-            tgtg_kost_bekend=bool(kanaalkost is not None and len(kanaalkost)),
         ).als_dict(),
         "producten": bf.producten(
             versheid=versheid,
@@ -875,8 +874,9 @@ def main() -> int:
     bonnen = canoniek.laad_bonnen(bonnen_pad) if bonnen_pad.exists() else None
     uren = canoniek.laad_uren(uren_pad) if uren_pad.exists() else None
 
-    # De kanaalkost van TGTG (bruto/commissie per maand), voor de financiële
-    # wig op het kanalenscherm. Optioneel: zonder tabel staat de reden erbij.
+    # De kanaalkost per commissiekanaal (bruto/commissie per maand), voor de
+    # financiële wig op het kanalenscherm. Optioneel: zonder tabel staat de
+    # reden erbij.
     kanaalkost_pad = INTERIM / "canoniek_kanaalkost.csv"
     kanaalkost = (pd.read_csv(kanaalkost_pad, dtype={"maand": str})
                   if kanaalkost_pad.exists() else None)

@@ -27,9 +27,9 @@ const STATUSWOORDEN: Record<string, Record<Taal, string>> = {
   vers: { nl: "vers", fr: "à jour" },
   stil: { nl: "stil", fr: "muet" },
   ontbreekt: { nl: "ontbreekt", fr: "manquant" },
-  // Een bron die niet meer aangevuld wordt (TGTG sinds 19 aug 2026). Bewust
-  // niet "verouderd": dat zou een verwijt zijn aan iets wat volgens afspraak
-  // stilstaat. Zie kwaliteit.BEVROREN.
+  // Een bron die niet meer aangevuld wordt. Bewust niet "verouderd": dat zou
+  // een verwijt zijn aan iets wat volgens afspraak stilstaat. Zie
+  // kwaliteit.BEVROREN.
   bevroren: { nl: "bevroren", fr: "figé" },
 };
 

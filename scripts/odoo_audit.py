@@ -219,7 +219,7 @@ if p is not None:
     print("dan wordt een marge per productgroep de aanname (docs/aannames.md).")
 
 kop("BLOK G - KALENDER EN KANAAL")
-print("Kanaalherkenning: zoek een veld dat winkel/Deliveroo/TGTG onderscheidt.")
+print("Kanaalherkenning: zoek een veld dat winkel/Deliveroo onderscheidt.")
 try:
     # fields_get in plaats van een record lezen: het schema volstaat om
     # kandidaat-velden te vinden, en zo raakt dit blok nooit een echte bon aan

@@ -13,16 +13,6 @@ verhoudingen. Filteren op één kassa zou ~2/3 van de bakkerijomzet weggooien.
 `filiaal_id` blijft staan zodat uitsplitsen een rapportagekwestie is zodra de
 opdrachtgever bevestigt wat de drie zijn (vraag 18, aanname A11).
 
-TGTG-OMZET — netto, niet bruto. Het dagbestand bevat de bruto verkoopprijs
-(wat de consument betaalt), maar daar gaat per pakket een vaste commissie af.
-De uitbetaling per maand is GEEN bruikbaar alternatief: TGTG betaalt per
-kwartaal uit met overdracht, dus uitbetaling/pakketten per maand slingert
-tussen €0 en €20. Daarom: netto = bruto − aantal × commissie_per_stuk van de
-maand (uit de facturen, tgtg_maanden.csv). Ontbreekt de maand, dan geldt de
-meest recente eerdere commissie — het tarief wijzigt zelden. De btw-behandeling
-van die netto-opbrengst is nog niet bevestigd; tot dan is `omzet_excl_btw`
-voor het kanaal tgtg te lezen als netto-opbrengst (zie docs/vragen-aan-lien.md).
-
 SLUITINGSDAGEN — geen meting, geen nul. Een dag zonder kassaverkoop van betekenis
 binnen het gemeten bereik betekent: de zaak was dicht. Die dag krijgt in de
 kalender `winkel_open = False`. Wie hem als nulverkoop meetelt, leert het model
@@ -46,18 +36,17 @@ import pandas as pd
 
 from bakkerij.features.calendar import kalender as bouw_basiskalender
 
-KANALEN = ("winkel", "deliveroo", "tgtg", "overig")
+KANALEN = ("winkel", "deliveroo", "overig")
 
 # De kanalen waar een platform een commissie inhoudt, en waar netto dus niet
-# gelijk is aan bruto. Deze lijst bestaat om één stille fout te voorkomen: de
-# commissieberekening kende tot 18 aug 2026 alleen `tgtg` bij naam, dus zodra
-# de Deliveroo-historiek binnenkomt (S1) zou dat kanaal een commissie van € 0
-# en bruto = netto tonen — bij een platform dat 25 à 35% inhoudt. Geen fout,
-# geen lege kolom, gewoon een verkeerd cijfer.
+# gelijk is aan bruto. Deze lijst bestaat om één stille fout te voorkomen:
+# zodra de Deliveroo-historiek binnenkomt (S1) zou dat kanaal zonder deze
+# lijst een commissie van € 0 en bruto = netto tonen — bij een platform dat
+# 25 à 35% inhoudt. Geen fout, geen lege kolom, gewoon een verkeerd cijfer.
 #
 # Wie hier een kanaal bij zet zonder dat de kanaalkosttabel het kent, krijgt
 # vanaf nu een onbeschikbaar-melding in plaats van een nul. Dat is de bedoeling.
-KANALEN_MET_COMMISSIE = ("tgtg", "deliveroo")
+KANALEN_MET_COMMISSIE = ("deliveroo",)
 
 KOLOMMEN = ["datum", "filiaal_id", "product_id", "product_naam",
             "kanaal", "aantal", "omzet_excl_btw"]
@@ -66,9 +55,9 @@ KOLOMMEN = ["datum", "filiaal_id", "product_id", "product_naam",
 # moet inlezen. Niet optioneel, en niet per script opnieuw te bedenken.
 #
 # `product_id` is een IDENTIFICATIE en geen getal. Vandaag komt hij als int64
-# uit de CSV, en dan werkt alles. Eén rij met een lege waarde -- een TGTG-
-# document met een onleesbare itemId, straks een Deliveroo-regel zonder
-# koppeling -- maakt er float64 van, en dan levert `.astype(str)` verderop
+# uit de CSV, en dan werkt alles. Eén rij met een lege waarde -- een
+# Deliveroo-regel zonder koppeling -- maakt er float64 van, en dan levert
+# `.astype(str)` verderop
 # "123.0" op waar de productgroepenindex "123" verwacht. Gevolg: geen fout,
 # geen lege tabel, maar een assortiment dat stilzwijgend volledig onder
 # "Overige" belandt, inclusief het margebeeld. De totalen blijven kloppen, dus
@@ -166,16 +155,6 @@ def laad_uren(pad) -> pd.DataFrame:
     return df[UREN_KOLOMMEN]
 
 
-def commissietabel(maanden: pd.DataFrame) -> pd.Series:
-    """Commissie per stuk, per maand ('2024-03' -> 1.69), gesorteerd op maand."""
-    tabel = (maanden.dropna(subset=["commissie_per_stuk"])
-             .set_index("maand")["commissie_per_stuk"]
-             .astype(float).sort_index())
-    if tabel.empty:
-        raise ValueError("tgtg_maanden.csv bevat geen enkele commissie_per_stuk")
-    return tabel
-
-
 def tarief_voor(maand: str, tabel: pd.Series) -> float:
     """De commissie van de maand zelf, anders de meest recente eerdere.
 
@@ -197,62 +176,6 @@ def tarief_voor(maand: str, tabel: pd.Series) -> float:
     return float(eerder.iloc[-1]) if not eerder.empty else float(tabel.iloc[0])
 
 
-def tgtg_naar_canoniek(dagen: pd.DataFrame, maanden: pd.DataFrame) -> pd.DataFrame:
-    """Dagrijen van TGTG naar de canonieke vorm, met netto-omzet."""
-    tabel = commissietabel(maanden)
-    df = dagen.copy()
-    df["datum"] = pd.to_datetime(df["datum"]).dt.date
-    df["aantal"] = df["aantal"].astype(float)
-    maand = df["datum"].map(lambda d: f"{d.year:04d}-{d.month:02d}")
-    commissie = maand.map(lambda m: tarief_voor(m, tabel))
-    netto = df["omzet_bruto"].astype(float) - df["aantal"] * commissie
-
-    return pd.DataFrame({
-        "datum": df["datum"],
-        "filiaal_id": df["store_id"].astype(str),
-        "product_id": df["item_id"].astype(str),
-        "product_naam": df["item_naam"],
-        "kanaal": "tgtg",
-        "aantal": df["aantal"],
-        "omzet_excl_btw": netto.round(2),
-    })
-
-
-def kanaalkost_tgtg(dagen: pd.DataFrame, maanden: pd.DataFrame) -> pd.DataFrame:
-    """De kanaalkost van TGTG per maand: bruto, commissie en inhouding.
-
-    `tgtg_naar_canoniek` levert bewust netto-omzet en gooit daarmee de
-    brutoprijs weg; voor de verkoop is dat juist (wat TGTG inhoudt, komt
-    nooit binnen), maar het kanaalscherm moet de wig kunnen tonen: wat de
-    klant betaalde, wat het platform inhield, wat er overbleef. Deze tabel
-    draagt die drie, per maand — het niveau waarop TGTG zijn tarieven zet.
-
-    Kolommen: kanaal | maand | stuks | bruto_per_stuk | commissie_per_stuk |
-    inhouding_pct (0-1).
-    """
-    tabel = commissietabel(maanden)
-    df = dagen.copy()
-    df["datum"] = pd.to_datetime(df["datum"]).dt.date
-    df["maand"] = df["datum"].map(lambda d: f"{d.year:04d}-{d.month:02d}")
-    per_maand = df.groupby("maand").agg(
-        stuks=("aantal", "sum"), bruto=("omzet_bruto", "sum")
-    )
-    per_maand = per_maand[per_maand["stuks"] > 0]
-    uit = pd.DataFrame({
-        "kanaal": "tgtg",
-        "maand": per_maand.index,
-        "stuks": per_maand["stuks"].astype(float),
-        "bruto_per_stuk": (per_maand["bruto"] / per_maand["stuks"]).round(4),
-        "commissie_per_stuk": [
-            tarief_voor(m, tabel) for m in per_maand.index
-        ],
-    })
-    uit["inhouding_pct"] = (
-        uit["commissie_per_stuk"] / uit["bruto_per_stuk"]
-    ).clip(lower=0.0, upper=1.0).round(4)
-    return uit.reset_index(drop=True)
-
-
 def bouw_verkopen(*delen: pd.DataFrame) -> pd.DataFrame:
     """Voeg de kanalen samen tot één tabel en bewaak de vorm."""
     df = pd.concat([d[KOLOMMEN] for d in delen], ignore_index=True)
@@ -271,7 +194,7 @@ def kanaalstatus(verkopen: pd.DataFrame) -> list[dict]:
     nooit stilzwijgend weggelaten.
     """
     status = []
-    for kanaal in ("winkel", "deliveroo", "tgtg"):
+    for kanaal in ("winkel", "deliveroo"):
         deel = verkopen[verkopen["kanaal"] == kanaal]
         if deel.empty:
             reden = DELIVEROO_REDEN if kanaal == "deliveroo" else "Geen data ingeladen"
@@ -359,7 +282,7 @@ def alleen_open_dagen(verkopen: pd.DataFrame, kalender: pd.DataFrame) -> pd.Data
     `winkel_gemeten` erbij nemen: zie de valkuil hieronder. Hier volstaat
     `winkel_open` alleen, omdat verkoopregels per definitie binnen het
     gemeten bereik vallen — een kalenderdag erbuiten heeft geen bonregels om
-    weg te filteren. Andere kanalen blijven ongemoeid: TGTG kent geen
+    weg te filteren. Andere kanalen blijven ongemoeid: Deliveroo kent geen
     winkelsluiting.
     """
     # Via `als_bool` en niet als kale mask: dit is de openingsfilter waar de

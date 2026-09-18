@@ -1,4 +1,4 @@
-.PHONY: help setup controle bouw test test-py test-ui lint audit backtest backtest-rapport diagnose tgtg-restwaarde clean check-data extract extract-uren extract-bonnen censurering odoo-audit tgtg deliveroo agenda kassa canoniek verzekering contract vakanties ui dev alles herbouw db-migreer db-droog db-laad db-laad-droog db-contract db-contract-droog db-kostenmodel db-sluitingen sync sync-droog steekproef
+.PHONY: help setup controle bouw test test-py test-ui lint audit backtest backtest-rapport diagnose clean check-data extract extract-uren extract-bonnen censurering odoo-audit deliveroo agenda canoniek verzekering contract vakanties ui dev alles herbouw db-migreer db-droog db-laad db-laad-droog db-contract db-contract-droog db-kostenmodel db-sluitingen sync sync-droog steekproef
 
 PY := .venv/bin/python
 PIP := .venv/bin/pip
@@ -151,18 +151,10 @@ censurering:
 verzekering:
 	$(PY) scripts/odoo_verzekering.py
 
-## Welke kassa is de bakkerij: vier toetsen op de data
-kassa:
-	$(PY) scripts/kassa_analyse.py
-
 ## Wat staat er in Odoo: modellen, velden en aantallen. Verkenningsgereedschap
 ## uit de data-audit; print alleen aggregaten, nooit rijen.
 odoo-audit:
 	$(PY) scripts/odoo_audit.py
-
-## TGTG-documentendump parsen naar data/interim
-tgtg:
-	$(PY) scripts/tgtg_extract.py
 
 ## Deliveroo-downloads inventariseren: welke bereiken liggen er, wat mist er,
 ## en waar zitten de gaten in de twaalf maanden. Parsen doet dit nog niet --
@@ -282,10 +274,6 @@ backtest-rapport:
 diagnose:
 	$(PY) scripts/backtest_diagnose.py
 
-## TGTG-restwaarde per kwartaal (A5). Naar reports/ (gitignored).
-tgtg-restwaarde:
-	$(PY) scripts/tgtg_restwaarde.py
-
 ## HET CFO-RAPPORT HEEFT GEEN DOEL MEER. Hier stond tot 18 aug 2026
 ## `rapport-pdf`: WeasyPrint bouwde een PDF uit de contractantwoorden en het
 ## platform serveerde dat bestand van schijf. Het rapport is nu een weergave in
@@ -323,7 +311,5 @@ alles: canoniek contract backtest
 
 ## De volledige herbouw uit de bron: schema, extract, canoniek, database,
 ## contract. Dit is het "één commando" uit CLAUDE.md (laag 2 en
-## app-gereedheid). Vergt .env met ODOO_* en SUPABASE_DB_URL. TGTG blijft
-## erbuiten zolang de bron een lokale pdf-dump is: draai daarvoor eenmalig
-## `make tgtg` vóór `make canoniek` (canoniek neemt de bestanden dan mee).
+## app-gereedheid). Vergt .env met ODOO_* en SUPABASE_DB_URL.
 herbouw: db-migreer extract extract-bonnen extract-uren canoniek db-laad contract db-contract

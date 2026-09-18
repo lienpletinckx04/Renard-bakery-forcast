@@ -31,7 +31,7 @@ Aanwijzen: de briefing bovenaan (signalering, geen advies), het bordeaux kerncij
 
 ### 3. Kanalen (4 min)
 **Boodschap:** elk kanaal heeft een andere marge, en dit platform toont "de wig" (bruto → commissie → netto) die nergens anders bestaat.
-Aanwijzen: winkel en TGTG met echte cijfers, en **Deliveroo als onbeschikbaar mét reden**. Dat is geen excuus maar het ontwerpprincipe: *dit platform toont nooit een cijfer dat niemand heeft aangeleverd.* Meteen de brug naar de gevraagde actie: de Partner Hub-rapporten (S1) verliezen elke dag permanent een dag historiek.
+Aanwijzen: winkel met echte cijfers, en **Deliveroo als onbeschikbaar mét reden**. Dat is geen excuus maar het ontwerpprincipe: *dit platform toont nooit een cijfer dat niemand heeft aangeleverd.* Meteen de brug naar de gevraagde actie: de Partner Hub-rapporten (S1) verliezen elke dag permanent een dag historiek. (TGTG stond hier tot 18 september 2026 ook met echte cijfers; dat kanaal is sindsdien uit scope, zie `beslissingen.md`.)
 
 ### 4. Producten (4 min)
 **Boodschap:** 425 producten, 19 groepen, en de vraag die een CFO stelt: komt de omzetbeweging door prijs of door volume?

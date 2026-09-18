@@ -51,7 +51,7 @@ test("de standvorm uit het contract compileert met alle statussen", () => {
       toelichting: "Gisteren gemeten.",
     },
     {
-      bron: "tgtg",
+      bron: "deliveroo",
       laatste_meetdag: "2026-08-01",
       rijen: 56,
       status: "achter",
@@ -70,7 +70,7 @@ test("de standvorm uit het contract compileert met alle statussen", () => {
     versie: 1,
     bijgewerkt_op: "2026-08-13T04:00:00+02:00",
     gemeten_tot: "2026-08-12",
-    bron: ["odoo", "tgtg"],
+    bron: ["odoo", "deliveroo"],
     onbeschikbaar: [],
     briefing: { punten: [], leeg: "" },
     data: { bronnen, wachters, ergste: "let_op" },

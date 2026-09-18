@@ -319,7 +319,7 @@ export type OverzichtData = {
 };
 
 export type KanaalBlok = {
-  kanaal: "winkel" | "tgtg" | "deliveroo";
+  kanaal: "winkel" | "deliveroo";
   naam: string;
   omzet_30d: string | null; // machinewaarde
   aandeel: string | null; // percentage als machinewaarde
@@ -331,7 +331,7 @@ export type KanaalBlok = {
    * De financiële wig: wat de klant betaalde (bruto), wat het platform
    * inhield (commissie), wat er overbleef (netto). Voor de winkel is de wig
    * nul (bruto == netto, commissie "0.00"); null wanneer de wig niet te
-   * berekenen is — de reden staat dan in `onbeschikbaar` (kanaal.tgtg.kost).
+   * berekenen is — de reden staat dan in `onbeschikbaar` (kanaal.<kanaal>.kost).
    */
   bruto_30d: string | null;
   commissie_30d: string | null;
@@ -571,11 +571,10 @@ export type BronStatus =
   | "gesloten"
   | "ontbreekt"
   /**
-   * Een bron die niet meer aangevuld wordt. Sinds 19 aug 2026 voor TGTG: de
-   * periodieke aanlevering is op 17 aug geschrapt, dus de historiek staat
-   * stil en mag niet tegen de klok gemeten worden. Zie `kwaliteit.BEVROREN`
-   * — daar staat waarom dit geen 'achter' is en wat er moet gebeuren als er
-   * ooit tóch weer aanvoer komt.
+   * Een bron die niet meer aangevuld wordt: de periodieke aanlevering is
+   * stopgezet, dus de historiek staat stil en mag niet tegen de klok gemeten
+   * worden. Zie `kwaliteit.BEVROREN` — daar staat waarom dit geen 'achter' is
+   * en wat er moet gebeuren als er ooit tóch weer aanvoer komt.
    */
   | "bevroren";
 

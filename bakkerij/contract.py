@@ -1376,20 +1376,6 @@ def overzicht(
 
 # --- kanalen ----------------------------------------------------------------
 
-KANAALKOST_REDEN = (
-    "Geen kanaalkosttabel ingeladen: de commissie van Too Good To Go is voor "
-    "dit venster niet te berekenen, en netto als bruto tonen zou de wig "
-    "verzwijgen. Draai make canoniek met de TGTG-maandbestanden erbij."
-)
-
-KANAALKOST_REDEN_FR = (
-    "Aucune table de coûts de canal n'est chargée : la commission de Too Good "
-    "To Go n'est pas calculable pour cette fenêtre, et présenter le net comme "
-    "du brut passerait la ponction sous silence. Lancez make canoniek avec les "
-    "fichiers mensuels TGTG."
-)
-
-
 def kanalen(
     dagtotalen: pd.DataFrame,
     tot: pd.Timestamp,
@@ -1400,13 +1386,13 @@ def kanalen(
     ontbrekend: dict[str, str],
     kanaalkost: pd.DataFrame | None = None,
 ) -> dict:
-    """Alle drie de kanalen naast elkaar. Een kanaal zonder data toont zich als
+    """Alle kanalen naast elkaar. Een kanaal zonder data toont zich als
     onbeschikbaar met reden, en verdwijnt niet uit de rij.
 
-    `kanaalkost` is de maandtabel uit canoniek.kanaalkost_tgtg en maakt de
-    financiële wig zichtbaar: bruto (wat de klant betaalde), commissie (wat
-    het platform inhield), netto (wat er overbleef). De winkel heeft geen wig;
-    Deliveroo heeft geen data en dus ook geen wig — die staat als reden erbij.
+    `kanaalkost` is de maandtabel die de financiële wig zichtbaar maakt: bruto
+    (wat de klant betaalde), commissie (wat het platform inhield), netto (wat
+    er overbleef). De winkel heeft geen wig; Deliveroo heeft geen data en dus
+    ook geen wig — die staat als reden erbij.
     """
     verdeling = bk.kanaalverdeling(dagtotalen, tot, dagen=30).set_index("kanaal")
     financien = {
@@ -1415,7 +1401,7 @@ def kanalen(
     }
     blokken, onbeschikbaar = [], []
 
-    for kanaal in ("winkel", "tgtg", "deliveroo"):
+    for kanaal in ("winkel", "deliveroo"):
         if kanaal not in verdeling.index:
             blokken.append({
                 "kanaal": kanaal, "naam": tl.kanaalnaam(kanaal),
@@ -1426,9 +1412,9 @@ def kanalen(
             })
             # Drie verschillende redenen, drie verschillende waarheden: de
             # aanroeper weet waarom een kanaal ontbreekt (Deliveroo), een
-            # kanaal mét historiek buiten het venster is bevroren en niet
-            # afwezig (TGTG zonder maandmail, sinds blok 9 geschrapt is),
-            # en pas als geen van beide geldt is er echt niets ingeladen.
+            # kanaal mét historiek buiten het venster heeft gewoon niets
+            # recents aangeleverd, en pas als geen van beide geldt is er
+            # echt niets ingeladen.
             historiek = dagtotalen[dagtotalen["kanaal"] == kanaal]
             if kanaal in ontbrekend:
                 reden = ontbrekend[kanaal]
@@ -1452,53 +1438,19 @@ def kanalen(
         met_commissie = kanaal in canoniek.KANALEN_MET_COMMISSIE
         heeft_wig = fin is not None and (not met_commissie or fin.commissie > 0)
         if met_commissie and not heeft_wig:
-            # Per kanaal een eigen reden waar die er is: bij TGTG wijst de
-            # herstelstap naar de maandbestanden, bij een ander kanaal is dat
-            # een andere handeling en zou die zin liegen.
-            reden_kost = (
-                t(KANAALKOST_REDEN, KANAALKOST_REDEN_FR)
-                if kanaal == "tgtg"
-                else t(
-                    f"Geen kanaalkosttabel voor {kanaal}: de commissie is voor "
-                    "dit venster niet te berekenen. Dit kanaal houdt wél een "
-                    "commissie in, dus € 0 tonen zou de wig verzwijgen en een "
-                    "verkeerd nettobeeld geven.",
-                    f"Aucune table de coûts pour {kanaal} : la commission n'est "
-                    "pas calculable pour cette fenêtre. Ce canal applique bien "
-                    "une commission ; afficher 0 € masquerait la ponction et "
-                    "donnerait une image nette erronée.",
-                )
+            reden_kost = t(
+                f"Geen kanaalkosttabel voor {kanaal}: de commissie is voor "
+                "dit venster niet te berekenen. Dit kanaal houdt wél een "
+                "commissie in, dus € 0 tonen zou de wig verzwijgen en een "
+                "verkeerd nettobeeld geven.",
+                f"Aucune table de coûts pour {kanaal} : la commission n'est "
+                "pas calculable pour cette fenêtre. Ce canal applique bien "
+                "une commission ; afficher 0 € masquerait la ponction et "
+                "donnerait une image nette erronée.",
             )
             onbeschikbaar.append({
                 "veld": f"kanaal.{kanaal}.kost",
                 "reden": reden_kost,
-            })
-
-        # De btw-kwestie hoort op het scherm en niet alleen in een docstring.
-        #
-        # `canoniek.py` zet de netto-opbrengst van TGTG in de kolom
-        # `omzet_excl_btw`, met de aantekening dat het btw-regime van die
-        # opbrengst niet bevestigd is (vraag aan de opdrachtgever). Het
-        # kanaalaandeel hieronder deelt die kolom door het totaal, en zet
-        # daarmee mogelijk een nettobedrag naast bedragen exclusief btw.
-        # Het cijfer is bruikbaar en het staat er terecht -- maar een lezer
-        # die het aandeel van TGTG afleest, hoort te weten waaróp het rust.
-        # Harde regel 8 gaat over cijfers die niet te geven zijn; dit is de
-        # aangrenzende plicht: een cijfer dat er staat mag geen onbevestigde
-        # aanname verzwijgen.
-        if kanaal == "tgtg":
-            onbeschikbaar.append({
-                "veld": "kanaal.tgtg.aandeel",
-                "reden": t(
-                    "Het btw-regime van de TGTG-netto-opbrengst is nog niet "
-                    "bevestigd. Het aandeel van dit kanaal vergelijkt die "
-                    "opbrengst met winkelomzet exclusief btw; zolang de "
-                    "bevestiging ontbreekt, is dat aandeel een benadering.",
-                    "Le régime de TVA du produit net TGTG n'est pas encore "
-                    "confirmé. La part de ce canal compare ce produit au "
-                    "chiffre d'affaires en magasin hors TVA ; tant que la "
-                    "confirmation manque, cette part est une approximation.",
-                ),
             })
 
         rij = verdeling.loc[kanaal]
@@ -1518,7 +1470,7 @@ def kanalen(
             "omzet_30d": _s(float(rij["omzet"])),
             "aandeel": _pct_machine(float(rij["aandeel_pct"])),
             "stuks_30d": _aantal(float(rij["stuks"])),
-            # Gemiddelde per gemeten dag van dít kanaal: TGTG meet ook op
+            # Gemiddelde per gemeten dag van dít kanaal: Deliveroo meet ook op
             # dagen dat de winkel dicht is, dus elk kanaal zijn eigen noemer.
             "gem_dagomzet": _s(float(rij["omzet"]) / int(rij["dagen"])),
             "meetdagen": str(int(rij["dagen"])),
@@ -1720,13 +1672,6 @@ MARGE_INVOER_REDEN = (
     "1.556.054 keer uit op nul (vraag 19)."
 )
 
-MARGE_TGTG_REDEN = (
-    "De ingevulde marges gelden voor winkelprijzen. Too Good To Go verkoopt "
-    "hetzelfde assortiment tegen restprijs en de canonieke TGTG-omzet is al "
-    "netto van commissie; daar een winkelmarge op loslaten zou winst tonen die "
-    "er niet is. De kanaalkost van TGTG staat op het scherm Verkoopkanalen."
-)
-
 MARGE_REDEN_FR = (
     "Bloqué faute de prix de revient. Odoo a calculé le prix de revient sur "
     "les 1.556.770 lignes de tickets de caisse et a obtenu zéro 1.556.054 "
@@ -1743,14 +1688,6 @@ MARGE_INVOER_REDEN_FR = (
     "La plateforme ne peut pas calculer la marge elle-même : Odoo a calculé le "
     "prix de revient sur les 1.556.770 lignes de tickets de caisse et a obtenu "
     "zéro 1.556.054 fois (question 19)."
-)
-
-MARGE_TGTG_REDEN_FR = (
-    "Les marges saisies valent pour les prix magasin. Too Good To Go vend le "
-    "même assortiment au prix de l'invendu et le chiffre d'affaires TGTG "
-    "canonique est déjà net de commission ; y appliquer une marge magasin "
-    "afficherait un bénéfice qui n'existe pas. Le coût de canal de TGTG figure "
-    "sur l'écran Canaux de vente."
 )
 
 
@@ -1918,10 +1855,6 @@ def marge(
             "reden": t(MARGE_INVOER_REDEN, MARGE_INVOER_REDEN_FR),
         })
 
-    onbeschikbaar.append({
-        "veld": "marge.tgtg",
-        "reden": t(MARGE_TGTG_REDEN, MARGE_TGTG_REDEN_FR),
-    })
     onbeschikbaar.append({
         "veld": "marge.deliveroo",
         "reden": t(

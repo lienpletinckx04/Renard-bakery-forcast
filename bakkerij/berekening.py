@@ -424,7 +424,8 @@ def kanaalverdeling(
     """Per kanaal de omzet over de laatste N kalenderdagen, plus het aandeel.
 
     Hier telt de kalender en niet het aantal open dagen, want de kanalen hebben
-    verschillende meetvensters: TGTG loopt door op een dag dat de winkel dicht is.
+    verschillende meetvensters: Deliveroo loopt door op een dag dat de winkel
+    dicht is.
     """
     van = tot - pd.Timedelta(days=dagen - 1)
     deel = dagtotalen_df[
@@ -1369,11 +1370,12 @@ def groepen_detail(
 class Kanaalfinancien:
     """Bruto, commissie en netto van één kanaal over een venster.
 
-    De canonieke omzet van TGTG is al netto (wat het platform inhoudt, komt
-    nooit binnen); dit beeld maakt de wig weer zichtbaar: wat de klant
-    betaalde (bruto), wat het platform inhield (commissie), wat overbleef
-    (netto). Voor de winkel is de wig nul en zijn bruto en netto gelijk.
-    `inhouding_pct` is commissie/bruto in procenten, of None zonder bruto.
+    De canonieke omzet van een commissiekanaal zoals Deliveroo is netto (wat
+    het platform inhoudt, komt nooit binnen); dit beeld maakt de wig weer
+    zichtbaar: wat de klant betaalde (bruto), wat het platform inhield
+    (commissie), wat overbleef (netto). Voor de winkel is de wig nul en zijn
+    bruto en netto gelijk. `inhouding_pct` is commissie/bruto in procenten,
+    of None zonder bruto.
     """
 
     kanaal: str
@@ -1391,7 +1393,7 @@ def kanaalfinancien(
     dagen: int = 30,
 ) -> list[Kanaalfinancien]:
     """Per kanaal met omzet in de laatste N kalenderdagen: netto, commissie,
-    bruto. Zonder kanaalkosttabel draagt TGTG commissie None-achtig nul niet:
+    bruto. Zonder kanaalkosttabel draagt een commissiekanaal geen commissie:
     dan ontbreekt het kanaalkostblok en hoort de reden in het contract —
     netto als bruto presenteren zou de wig verzwijgen."""
     van = tot - pd.Timedelta(days=dagen - 1)
@@ -1399,24 +1401,21 @@ def kanaalfinancien(
         (dagtotalen_df["datum"] >= van) & (dagtotalen_df["datum"] <= tot)
     ]
 
-    tarieven = None
-    if kanaalkost_df is not None and not kanaalkost_df.empty:
-        tgtg_kost = kanaalkost_df[kanaalkost_df["kanaal"] == "tgtg"]
-        if not tgtg_kost.empty:
-            tarieven = (tgtg_kost.set_index("maand")["commissie_per_stuk"]
-                        .astype(float).sort_index())
-
     uit: list[Kanaalfinancien] = []
     for kanaal, groep in deel.groupby("kanaal"):
         netto = euro(float(groep["omzet"].sum()))
         commissie = euro(0)
-        if kanaal == "tgtg" and tarieven is not None:
-            maanden = groep["datum"].map(lambda d: f"{d.year:04d}-{d.month:02d}")
-            per_rij = [
-                float(stuks) * tarief_voor(m, tarieven)
-                for stuks, m in zip(groep["stuks"], maanden)
-            ]
-            commissie = euro(sum(per_rij))
+        if kanaalkost_df is not None and not kanaalkost_df.empty:
+            kost = kanaalkost_df[kanaalkost_df["kanaal"] == kanaal]
+            if not kost.empty:
+                tarieven = (kost.set_index("maand")["commissie_per_stuk"]
+                            .astype(float).sort_index())
+                maanden = groep["datum"].map(lambda d: f"{d.year:04d}-{d.month:02d}")
+                per_rij = [
+                    float(stuks) * tarief_voor(m, tarieven)
+                    for stuks, m in zip(groep["stuks"], maanden)
+                ]
+                commissie = euro(sum(per_rij))
         bruto = euro(netto + commissie)
         inhouding = None
         if bruto > 0 and commissie > 0:
@@ -1427,58 +1426,6 @@ def kanaalfinancien(
                                    commissie=commissie, bruto=bruto,
                                    inhouding_pct=inhouding))
     return uit
-
-
-def tgtg_restwaarde_per_kwartaal(
-    dagtotalen_df: pd.DataFrame,
-    kanaalkost_df: pd.DataFrame | None,
-) -> pd.DataFrame:
-    """De restwaarde die TGTG per kwartaal verzilverde (deliverable A5).
-
-    Elke verkochte verrassingszak is omzet uit producten die anders derving
-    waren; de netto-opbrengst per kwartaal is dus de gerecupereerde
-    restwaarde. Met de kanaalkosttabel erbij wordt ook de wig zichtbaar:
-    bruto = netto + stuks × maandcommissie. Zonder kosttabel blijven
-    commissie en bruto None — netto als bruto tonen zou de wig verzwijgen.
-
-    Kolommen: kwartaal ("2025K1") | stuks | netto | commissie | bruto,
-    alle bedragen Decimal, chronologisch.
-    """
-    tgtg = dagtotalen_df[dagtotalen_df["kanaal"] == "tgtg"].copy()
-    if tgtg.empty:
-        return pd.DataFrame(columns=["kwartaal", "stuks", "netto",
-                                     "commissie", "bruto"])
-
-    tarieven = None
-    if kanaalkost_df is not None and not kanaalkost_df.empty:
-        kost = kanaalkost_df[kanaalkost_df["kanaal"] == "tgtg"]
-        if not kost.empty:
-            tarieven = (kost.set_index("maand")["commissie_per_stuk"]
-                        .astype(float).sort_index())
-
-    tgtg["kwartaal"] = tgtg["datum"].map(
-        lambda d: f"{d.year}K{(d.month - 1) // 3 + 1}"
-    )
-    tgtg["maand"] = tgtg["datum"].map(lambda d: f"{d.year:04d}-{d.month:02d}")
-
-    rijen = []
-    for kwartaal, groep in tgtg.groupby("kwartaal"):
-        netto = euro(float(groep["omzet"].sum()))
-        commissie = bruto = None
-        if tarieven is not None:
-            commissie = euro(sum(
-                float(stuks) * tarief_voor(m, tarieven)
-                for stuks, m in zip(groep["stuks"], groep["maand"])
-            ))
-            bruto = euro(netto + commissie)
-        rijen.append({
-            "kwartaal": kwartaal,
-            "stuks": _stuks(float(groep["stuks"].sum())),
-            "netto": netto,
-            "commissie": commissie,
-            "bruto": bruto,
-        })
-    return pd.DataFrame(sorted(rijen, key=lambda r: r["kwartaal"]))
 
 
 # --- marge -------------------------------------------------------------------
@@ -1536,9 +1483,10 @@ def marge_per_groep(
     de contractlaag zet er een waarschuwing bij.
 
     Bewust alleen de winkel als standaard: de ingevulde kosten gelden voor
-    winkelprijzen. TGTG verkoopt hetzelfde assortiment tegen restprijs en de
-    canonieke TGTG-omzet is bovendien al netto van commissie; daar dezelfde
-    opbouw op loslaten zou een winst tonen die er niet is. `None` betekent:
+    winkelprijzen. Deliveroo verkoopt hetzelfde assortiment tegen een andere
+    prijs en de canonieke Deliveroo-omzet is bovendien netto van commissie;
+    daar dezelfde opbouw op loslaten zou een winst tonen die er niet is.
+    `None` betekent:
     geen omzet in het venster, en dat toont de contractlaag als onbeschikbaar.
     """
     per_groep = omzet_per_groep(open_verkopen_df, groepen, tot,

@@ -30,11 +30,11 @@ test("geen enkele reden verdwijnt van het scherm", () => {
 test("een onbekend veld belandt in overig en blijft dus zichtbaar", () => {
   // Dit is het geval waar het om gaat: de berekeningslaag verzint morgen een
   // nieuwe reden en die mag niet stil in de JSON blijven zitten.
-  const met = [...CONTRACT, regel("prognose.iets.nieuws"), regel("bron.tgtg")];
+  const met = [...CONTRACT, regel("prognose.iets.nieuws"), regel("bron.marktkraam")];
   const v = verdeelPrognoseRegels(met);
   assert.deepEqual(
     v.overig.map((r) => r.veld),
-    ["prognose.iets.nieuws", "bron.tgtg"],
+    ["prognose.iets.nieuws", "bron.marktkraam"],
   );
   assert.equal(alleVelden(v).length, met.length);
 });
@@ -152,19 +152,17 @@ test("de wachters van het standscherm dragen een Nederlands label", () => {
 });
 
 test("de bronnen van het standscherm dragen een net label in beide talen", () => {
-  // De drie bronnamen uit stand.json (bronstanden[].bron). De sleutel blijft
+  // De bronnamen uit stand.json (bronstanden[].bron). De sleutel blijft
   // in het contract; alleen de weergave verandert.
   assert.equal(veldLabel("odoo-kassa", "nl"), "Odoo-kassa's");
   assert.equal(veldLabel("odoo-kassa", "fr"), "Caisses Odoo");
-  assert.equal(veldLabel("tgtg", "nl"), "Too Good To Go");
-  assert.equal(veldLabel("tgtg", "fr"), "Too Good To Go");
   assert.equal(veldLabel("deliveroo", "nl"), "Deliveroo");
   assert.equal(veldLabel("deliveroo", "fr"), "Deliveroo");
 });
 
 test("de bronnamen in de envelope, in de voettekst, dragen hetzelfde label", () => {
   // De voettekst toont `bron[]` uit de envelope; daar staat "winkel" naast
-  // "tgtg". De envelope-sleutel "winkel" en de bronstand "odoo-kassa" zijn
+  // "deliveroo". De envelope-sleutel "winkel" en de bronstand "odoo-kassa" zijn
   // dezelfde bron — de Odoo-kassa's — dus dragen voettekst en Instellingen
   // hetzelfde label. Eén bron, één naam, in beide talen.
   assert.equal(veldLabel("winkel", "nl"), "Odoo-kassa's");
@@ -216,7 +214,7 @@ test("geen enkel label draagt nog een punt of een liggend streepje", () => {
     // Verzonnen wachternamen: snake_case, nu nog onbekend, straks echt.
     "bon_zonder_regels",
     "uurpiek_buiten_de_openingsuren",
-    "tgtg_mand_zonder_uitbetaling",
+    "mand_zonder_uitbetaling",
     // Een onbekende staart achter een bekend voorvoegsel: dit pad liet de
     // streepjes vroeger ongemoeid door.
     "kanaal.nieuw_kanaal",

@@ -1,8 +1,7 @@
 """Tests voor het canonieke datamodel.
 
-Alle fixtures zijn verzonnen. Geen enkele rij komt uit klantdata — dezelfde
-discipline als test_tgtg_parse.py, en om dezelfde reden: deze tests moeten
-kunnen draaien (en in de repo staan) zonder dat er ook maar iets van de
+Alle fixtures zijn verzonnen. Geen enkele rij komt uit klantdata: deze tests
+moeten kunnen draaien (en in de repo staan) zonder dat er ook maar iets van de
 eindklant meereist.
 """
 import datetime
@@ -23,68 +22,24 @@ def _winkel(rijen) -> pd.DataFrame:
     )
 
 
-def _tgtg_dagen(rijen) -> pd.DataFrame:
-    """rijen: (datum, aantal, omzet_bruto)."""
+def _deliveroo(rijen) -> pd.DataFrame:
+    """rijen: (datum, filiaal, product_id, naam, aantal, omzet). Zelfde vorm
+    als `_winkel`, maar op het kanaal deliveroo, voor tests die een tweede
+    kanaal naast winkel nodig hebben."""
     return pd.DataFrame(
-        [{"datum": d, "store_id": 9001, "item_id": 7001,
-          "item_naam": "Verrassingspakket", "aantal": a, "omzet_bruto": b}
-         for d, a, b in rijen]
+        [{"datum": datetime.date.fromisoformat(d), "filiaal_id": f,
+          "product_id": p, "product_naam": n, "kanaal": "deliveroo",
+          "aantal": a, "omzet_excl_btw": o}
+         for d, f, p, n, a, o in rijen]
     )
-
-
-def _tgtg_maanden(rijen) -> pd.DataFrame:
-    """rijen: (maand, commissie_per_stuk)."""
-    return pd.DataFrame(
-        [{"maand": m, "store_id": 9001, "commissie_per_stuk": c}
-         for m, c in rijen]
-    )
-
-
-# --- TGTG: netto-omzet -----------------------------------------------------
-
-def test_tgtg_netto_is_bruto_min_commissie():
-    dagen = _tgtg_dagen([("2024-03-05", 4, 23.96)])          # 4 x 5,99 bruto
-    maanden = _tgtg_maanden([("2024-03", 1.69)])
-    uit = canoniek.tgtg_naar_canoniek(dagen, maanden)
-    assert uit.loc[0, "omzet_excl_btw"] == pytest.approx(23.96 - 4 * 1.69)
-    assert uit.loc[0, "kanaal"] == "tgtg"
-    assert uit.loc[0, "filiaal_id"] == "9001"
-    assert uit.loc[0, "product_id"] == "7001"
-
-
-def test_tgtg_commissie_valt_terug_op_vorige_maand():
-    # April ontbreekt in de facturen: het tarief van maart geldt.
-    dagen = _tgtg_dagen([("2024-04-10", 2, 11.98)])
-    maanden = _tgtg_maanden([("2024-03", 1.69), ("2024-06", 1.79)])
-    uit = canoniek.tgtg_naar_canoniek(dagen, maanden)
-    assert uit.loc[0, "omzet_excl_btw"] == pytest.approx(11.98 - 2 * 1.69)
-
-
-def test_tgtg_voor_eerste_factuur_geldt_de_eerste_bekende():
-    # Beter het tarief van één maand later dan stilzwijgend bruto rekenen.
-    dagen = _tgtg_dagen([("2019-06-20", 1, 3.99)])
-    maanden = _tgtg_maanden([("2019-07", 1.29)])
-    uit = canoniek.tgtg_naar_canoniek(dagen, maanden)
-    assert uit.loc[0, "omzet_excl_btw"] == pytest.approx(3.99 - 1.29)
-
-
-def test_tgtg_zonder_enige_commissie_faalt_luid():
-    dagen = _tgtg_dagen([("2024-03-05", 1, 5.99)])
-    maanden = _tgtg_maanden([]).reindex(columns=["maand", "store_id",
-                                                 "commissie_per_stuk"])
-    with pytest.raises(ValueError, match="commissie"):
-        canoniek.tgtg_naar_canoniek(dagen, maanden)
 
 
 # --- samenvoegen -----------------------------------------------------------
 
 def test_bouw_verkopen_sorteert_en_bewaakt_kanalen():
     winkel = _winkel([("2024-03-06", "Kassa 1", "10", "Brood", 3, 9.0)])
-    tgtg = canoniek.tgtg_naar_canoniek(
-        _tgtg_dagen([("2024-03-05", 1, 5.99)]),
-        _tgtg_maanden([("2024-03", 1.69)]),
-    )
-    uit = canoniek.bouw_verkopen(winkel, tgtg)
+    deliveroo = _deliveroo([("2024-03-05", "1", "7001", "Bestelling", 1, 4.30)])
+    uit = canoniek.bouw_verkopen(winkel, deliveroo)
     assert list(uit.columns) == canoniek.KOLOMMEN
     assert list(uit["datum"]) == [datetime.date(2024, 3, 5),
                                   datetime.date(2024, 3, 6)]
@@ -121,14 +76,11 @@ def test_kalender_sluitingsdag_binnen_bereik_is_dicht_niet_nul():
 
 
 def test_kalender_buiten_gemeten_bereik_weten_we_niets():
-    # TGTG loopt langer terug dan het Odoo-extract: die vroege dagen zijn
+    # Deliveroo loopt langer terug dan het Odoo-extract: die vroege dagen zijn
     # voor de winkel niet gemeten, dus ook niet 'dicht'.
     winkel = _winkel([("2024-03-04", "Kassa 1", "10", "Brood", 3, 9.0)])
-    tgtg = canoniek.tgtg_naar_canoniek(
-        _tgtg_dagen([("2024-02-01", 1, 5.99)]),
-        _tgtg_maanden([("2024-02", 1.69)]),
-    )
-    kal = canoniek.bouw_kalender(canoniek.bouw_verkopen(winkel, tgtg))
+    deliveroo = _deliveroo([("2024-02-01", "1", "7001", "Bestelling", 1, 5.99)])
+    kal = canoniek.bouw_kalender(canoniek.bouw_verkopen(winkel, deliveroo))
     kal = kal.set_index("datum")
     vroeg = kal.loc[datetime.date(2024, 2, 1)]
     assert bool(vroeg["winkel_gemeten"]) is False
@@ -180,22 +132,19 @@ def test_drempel_valt_weg_bij_te_weinig_dagen_per_weekdag():
     assert bool(kal.loc[datetime.date(2024, 1, 22), "winkel_open"]) is True
 
 
-def test_alleen_open_dagen_snijdt_de_losse_bon_weg_maar_spaart_tgtg():
+def test_alleen_open_dagen_snijdt_de_losse_bon_weg_maar_spaart_deliveroo():
     winkel = _maandagen([1000.0] * 9 + [0.50])
-    tgtg = canoniek.tgtg_naar_canoniek(
-        # TGTG verkoopt op een dag dat de winkel dicht is: dat blijft staan,
-        # want een winkelsluiting zegt niets over het TGTG-kanaal.
-        _tgtg_dagen([("2024-03-04", 1, 5.99)]),
-        _tgtg_maanden([("2024-03", 1.69)]),
-    )
-    verkopen = canoniek.bouw_verkopen(winkel, tgtg)
+    # Deliveroo verkoopt op een dag dat de winkel dicht is: dat blijft staan,
+    # want een winkelsluiting zegt niets over het Deliveroo-kanaal.
+    deliveroo = _deliveroo([("2024-03-04", "1", "7001", "Bestelling", 1, 5.99)])
+    verkopen = canoniek.bouw_verkopen(winkel, deliveroo)
     kal = canoniek.bouw_kalender(verkopen)
     uit = canoniek.alleen_open_dagen(verkopen, kal)
 
     winkelrijen = uit[uit["kanaal"] == "winkel"]
     assert len(winkelrijen) == 9
     assert datetime.date(2024, 3, 4) not in set(winkelrijen["datum"])
-    assert len(uit[uit["kanaal"] == "tgtg"]) == 1
+    assert len(uit[uit["kanaal"] == "deliveroo"]) == 1
     # En de feitentabel zelf is niet aangetast: de bon van € 0,50 staat er nog.
     assert len(verkopen[verkopen["kanaal"] == "winkel"]) == 10
 
@@ -553,45 +502,6 @@ def test_laad_uren_weigert_een_onvolledig_bestand(tmp_path):
     pad.write_text("datum,product_id\n2026-03-01,7\n")
     with pytest.raises(ValueError, match="mist kolommen"):
         canoniek.laad_uren(pad)
-
-
-# --- kanaalkost_tgtg ---------------------------------------------------------
-
-def _tgtg_invoer():
-    dagen = pd.DataFrame({
-        "datum": ["2025-03-01", "2025-03-02", "2025-04-01"],
-        "store_id": ["1", "1", "1"],
-        "item_id": ["9", "9", "9"],
-        "item_naam": ["Pakket", "Pakket", "Pakket"],
-        "aantal": [10.0, 10.0, 20.0],
-        "omzet_bruto": [50.0, 50.0, 120.0],
-    })
-    maanden = pd.DataFrame({
-        "maand": ["2025-03", "2025-04"],
-        "commissie_per_stuk": [1.5, 1.8],
-    })
-    return dagen, maanden
-
-
-def test_kanaalkost_tgtg_toont_bruto_commissie_en_inhouding_per_maand():
-    dagen, maanden = _tgtg_invoer()
-    kk = canoniek.kanaalkost_tgtg(dagen, maanden)
-    maart = kk[kk["maand"] == "2025-03"].iloc[0]
-    assert maart["stuks"] == 20.0
-    assert maart["bruto_per_stuk"] == pytest.approx(5.0)
-    assert maart["commissie_per_stuk"] == pytest.approx(1.5)
-    assert maart["inhouding_pct"] == pytest.approx(0.3)
-    april = kk[kk["maand"] == "2025-04"].iloc[0]
-    assert april["inhouding_pct"] == pytest.approx(1.8 / 6.0)
-
-
-def test_kanaalkost_tgtg_klemt_de_inhouding_op_honderd_procent():
-    # Een maand waarin de commissie boven de brutoprijs uitkomt (kan bij
-    # promopakketten): de inhouding is dan 100%, geen 130%.
-    dagen, maanden = _tgtg_invoer()
-    maanden.loc[0, "commissie_per_stuk"] = 9.0
-    kk = canoniek.kanaalkost_tgtg(dagen, maanden)
-    assert kk[kk["maand"] == "2025-03"].iloc[0]["inhouding_pct"] == pytest.approx(1.0)
 
 
 # --- geplande sluitingen in het prognosevenster (14 augustus 2026) -----------

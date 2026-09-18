@@ -88,9 +88,9 @@ def main() -> int:
     print(f"  totaal {len(rijen)} rijen voor contract_antwoord")
 
     # Wat de wacht straks weegt, hardop -- óók droog. Een bouwer die hier
-    # 'winkel' ziet staan waar 'tgtg, winkel' hoort, weet vóór het schrijven
-    # dat zijn omgeving een bron mist; anders leert hij het pas van een
-    # geweigerde nachtrun.
+    # 'winkel' ziet staan waar 'deliveroo, winkel' hoort, weet vóór het
+    # schrijven dat zijn omgeving een bron mist; anders leert hij het pas van
+    # een geweigerde nachtrun.
     rijkdommen = [contract_rijen.rijkdom_uit_json(r.antwoord) for r in rijen]
     bronnen = sorted({b for r in rijkdommen for b in r.bronnen})
     mist = sorted({v for r in rijkdommen for v in r.ontbrekende_invoer})
@@ -115,11 +115,10 @@ def main() -> int:
             with verbinding.cursor() as cur:
                 # De krimpwacht, vóór het verwijderen. Zie
                 # contract_rijen.ontbrekende_sleutels en .verarming voor het
-                # waarom: een runner zonder data/config/ en zonder de
-                # TGTG-bestanden bouwt een verarmd contract en schrijft dat
-                # anders met succes over het goede heen. Twee helften, want een
-                # verarmde bouw kan even goed álle sleutels leveren met minder
-                # erin.
+                # waarom: een runner zonder data/config/ bouwt een verarmd
+                # contract en schrijft dat anders met succes over het goede
+                # heen. Twee helften, want een verarmde bouw kan even goed
+                # álle sleutels leveren met minder erin.
                 cur.execute(contract_rijen.BESTAANDE_RIJKDOM_SQL)
                 bestaand_rijk = {
                     (s, t, w): contract_rijen.rijkdom_uit_velden(bron, onb)
@@ -153,10 +152,10 @@ def main() -> int:
                     laden.eind_run(verbinding, run_id, "fout", melding=melding[:500])
                     print(f"\nGEBLOKKEERD -- {melding}\n\n"
                           "Dit is de wacht tegen een verarmde bouw: een omgeving "
-                          "zonder data/config/ of zonder de TGTG-bestanden bouwt "
-                          "minder schermen, of dezelfde schermen met een kanaal "
-                          "of het kostenmodel eruit -- en dat zou hier het "
-                          "volledige contract vervangen.\n"
+                          "zonder data/config/ bouwt minder schermen, of "
+                          "dezelfde schermen met een kanaal of het kostenmodel "
+                          "eruit -- en dat zou hier het volledige contract "
+                          "vervangen.\n"
                           "Klopt de krimp wel (een winkel is echt uit de "
                           "indeling gehaald, een kanaal is echt gestopt), draai "
                           "dan met CONTRACT_KRIMP_OK=1.",

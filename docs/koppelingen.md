@@ -1,12 +1,14 @@
 # De koppelingen
 
-_Vastgelegd 12 augustus 2026. Drie bronnen, drie totaal verschillende mechanismen. Rangorde van de opdrachtgever: Odoo eerst, Deliveroo tweede, TGTG derde. Die rangorde geldt voor de bouwvolgorde, niet voor de datakwaliteit — TGTG is toevallig de enige bron die vandaag volledig binnen is._
+_Vastgelegd 12 augustus 2026. Twee actieve bronnen, twee totaal verschillende mechanismen: Odoo en Deliveroo. TGTG was tot 18 september 2026 een derde bron; ze is sindsdien uit scope (zie `beslissingen.md`) en het onderstaande TGTG-ontwerp blijft alleen als historisch record staan._
 
 ---
 
-## Too Good To Go
+## Too Good To Go — UIT SCOPE sinds 18 september 2026
 
-> **Geschrapt 17 augustus 2026** op vraag van de opdrachtgever: de ingestmailbox-constructie komt er niet. Het kanaal bevriest op de geparste historiek t/m juli 2026; het handmatige pad staat in `beheerdraaiboek.md`. Onderstaand ontwerp blijft staan voor het geval de klant het later alsnog wil.
+> **Uit scope (18 september 2026, zie `beslissingen.md`).** Het kanaal, zijn data en het bevriezingsmechanisme zijn volledig uit de codebase en de productiedatabase verwijderd op vraag van de opdrachtgever. Wat hieronder staat is geen actief ontwerp meer en komt niet terug — het blijft staan als record van het onderzoek dat destijds gedaan is.
+>
+> **Geschrapt 17 augustus 2026** op vraag van de opdrachtgever: de ingestmailbox-constructie kwam er niet. Het kanaal bevroor toen op de geparste historiek t/m juli 2026.
 
 ### De situatie
 

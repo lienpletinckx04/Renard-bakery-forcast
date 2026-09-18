@@ -108,19 +108,10 @@ const LABELS: Record<string, [string, string]> = {
   concentratie: ["Waar de omzet op leunt", "Ce qui porte le chiffre d'affaires"],
   jaarvergelijking: ["Jaar-op-jaar", "Année après année"],
   kanaal: ["Kanaal", "Canal"],
-  // De drie kanaalnamen staan er voluit in: het voorvoegselvangnet zou
+  // De kanaalnamen staan er voluit in: het voorvoegselvangnet zou
   // "Kanaal: deliveroo" opleveren, en een merknaam met een kleine letter is
   // net zo goed een variabelenaam die ontsnapt is.
   "kanaal.winkel": ["Kanaal Winkel", "Canal Magasin"],
-  "kanaal.tgtg": ["Kanaal Too Good To Go", "Canal Too Good To Go"],
-  "kanaal.tgtg.kost": [
-    "Kanaalkost Too Good To Go",
-    "Coût du canal Too Good To Go",
-  ],
-  "kanaal.tgtg.aandeel": [
-    "Aandeel Too Good To Go",
-    "Part de Too Good To Go",
-  ],
   "kanaal.deliveroo": ["Kanaal Deliveroo", "Canal Deliveroo"],
   "kanaal.deliveroo.kost": ["Kanaalkost Deliveroo", "Coût du canal Deliveroo"],
   kerncijfer: ["Kerncijfer", "Chiffre clé"],
@@ -155,7 +146,6 @@ const LABELS: Record<string, [string, string]> = {
   marge_per_groep: ["Marge per productgroep", "Marge par groupe de produits"],
   marge_per_kanaal: ["Marge per kanaal", "Marge par canal"],
   marge: ["Marge", "Marge"],
-  "marge.tgtg": ["Marge Too Good To Go", "Marge Too Good To Go"],
   "marge.deliveroo": ["Marge Deliveroo", "Marge Deliveroo"],
   "marge.ontbrekende_groepen": [
     "Groepen zonder ingevulde kosten",
@@ -242,7 +232,6 @@ const LABELS: Record<string, [string, string]> = {
   // Merknamen blijven in beide talen gelijk; een bron die er later
   // bijkomt, valt op het vangnet en verschijnt leesbaar in plaats van ruw.
   "odoo-kassa": ["Odoo-kassa's", "Caisses Odoo"],
-  tgtg: ["Too Good To Go", "Too Good To Go"],
   deliveroo: ["Deliveroo", "Deliveroo"],
   // De envelope-bron "winkel" en de bronstand "odoo-kassa" zijn dezelfde
   // bron. Eén bron draagt één naam: de voettekst zegt hetzelfde als

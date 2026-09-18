@@ -90,13 +90,12 @@ def test_elke_maand_en_weekdag_bestaat_in_beide_talen():
 
 
 def test_merknamen_blijven_staan():
-    """"Too Good To Go" heet in het Frans ook Too Good To Go.
+    """"Deliveroo" heet in het Frans ook Deliveroo.
 
     Een vertaald kanaal zou een naam tonen die in geen enkele afrekening
     voorkomt, en dan klopt het scherm niet meer met het document ernaast.
     """
     with tl.in_taal("fr"):
-        assert tl.kanaalnaam("tgtg") == "Too Good To Go"
         assert tl.kanaalnaam("deliveroo") == "Deliveroo"
         assert tl.kanaalnaam("winkel") == "Magasin"
         assert tl.kanaalnaam("overig") == "Autres"

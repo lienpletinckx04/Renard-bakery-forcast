@@ -37,7 +37,7 @@ Het aantal tests staat hier bewust niet: `make test` meldt het zelf, en een geta
 
 | Laag | Stand | Waar |
 |---|---|---|
-| **Inlaadlaag** | Odoo (kassa) en TGTG draaien. Deliveroo ontbreekt (O2) | `bakkerij/sources/`, `scripts/odoo_extract.py`, `scripts/tgtg_extract.py` |
+| **Inlaadlaag** | Odoo (kassa) draait. Deliveroo ontbreekt (O2). TGTG is uit scope (18 sep 2026, zie `beslissingen.md`) | `bakkerij/sources/`, `scripts/odoo_extract.py` |
 | **Canoniek model** | 221.375 rijen. `datum · filiaal_id · product_id · product_naam · kanaal · aantal · omzet_excl_btw` + kalenderlaag | `bakkerij/canoniek.py` |
 | **Database** | **Draait.** Supabase (14 aug, `eu-north-1`), migraties toegepast op 18 aug en de feiten geladen (316.469 rijen); het platform leest zijn contract eruit (`CONTRACT_BRON=db`) | `db/migraties/`, `bakkerij/db/` |
 | **Berekening** | Pure functies, databaseloos, met tests | `bakkerij/berekening.py` |

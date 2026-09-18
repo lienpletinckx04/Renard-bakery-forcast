@@ -355,7 +355,7 @@ def test_kanaal_zonder_data_blijft_in_de_rij_staan_met_reden():
                    gemeten_tot=tot,
                    ontbrekend={"deliveroo": "Historiek nog niet aangeleverd"})
     kanalen = {k["kanaal"]: k for k in a["data"]["kanalen"]}
-    assert set(kanalen) == {"winkel", "tgtg", "deliveroo"}
+    assert set(kanalen) == {"winkel", "deliveroo"}
     assert kanalen["deliveroo"]["omzet_30d"] is None
     assert kanalen["deliveroo"]["verloop"] is None
     reden = next(o["reden"] for o in a["onbeschikbaar"] if "deliveroo" in o["veld"])
@@ -1056,7 +1056,7 @@ def test_stand_draagt_de_kwaliteitslaag_in_de_gewone_envelope():
                       "toelichting": "geen dubbels"}],
         "ergste": "goed",
     }
-    a = ct.stand(kwaliteit, bron=["odoo", "tgtg"], bijgewerkt_op=BIJGEWERKT,
+    a = ct.stand(kwaliteit, bron=["odoo", "deliveroo"], bijgewerkt_op=BIJGEWERKT,
                  gemeten_tot=datetime.date(2026, 7, 31))
     assert a["gemeten_tot"] == "2026-07-31"
     assert a["data"]["ergste"] == "goed"
@@ -1108,8 +1108,7 @@ def test_marge_vult_zich_zodra_er_invoer_is():
     # geen ontbrekende groepen: geen regel daarover
     velden = [o["veld"] for o in a["onbeschikbaar"]]
     assert "marge.ontbrekende_groepen" not in velden
-    # maar TGTG en Deliveroo staan er wél eerlijk bij
-    assert "marge.tgtg" in velden
+    # maar Deliveroo staat er wél eerlijk bij
     assert "marge.deliveroo" in velden
 
 
@@ -1231,14 +1230,14 @@ def test_kanalen_dragen_bruto_commissie_netto():
     rijen = []
     for d in pd.date_range("2026-06-11", periods=20, freq="D"):
         rijen.append((d.date().isoformat(), "10", "Brood", "winkel", 1.0, 100.0))
-        rijen.append((d.date().isoformat(), "99", "Zak", "tgtg", 2.0, 8.0))
+        rijen.append((d.date().isoformat(), "99", "Bestelling", "deliveroo", 2.0, 8.0))
     verkopen = _verkopen(rijen)
     kal = canoniek.bouw_kalender(verkopen)
     open_v = bk.open_verkopen(verkopen, kal)
     totalen = bk.dagtotalen(open_v)
     tot = bk.peildatum(open_v)
     kost = pd.DataFrame({
-        "kanaal": ["tgtg"], "maand": ["2026-06"], "stuks": [40.0],
+        "kanaal": ["deliveroo"], "maand": ["2026-06"], "stuks": [40.0],
         "bruto_per_stuk": [5.69], "commissie_per_stuk": [1.69],
         "inhouding_pct": [0.297],
     })
@@ -1247,16 +1246,16 @@ def test_kanalen_dragen_bruto_commissie_netto():
     blokken = {k["kanaal"]: k for k in a["data"]["kanalen"]}
     assert blokken["winkel"]["commissie_30d"] == "0.00"
     assert blokken["winkel"]["bruto_30d"] == blokken["winkel"]["netto_30d"]
-    assert blokken["tgtg"]["commissie_30d"] is not None
-    assert Decimal(blokken["tgtg"]["bruto_30d"]) == (
-        Decimal(blokken["tgtg"]["netto_30d"])
-        + Decimal(blokken["tgtg"]["commissie_30d"])
+    assert blokken["deliveroo"]["commissie_30d"] is not None
+    assert Decimal(blokken["deliveroo"]["bruto_30d"]) == (
+        Decimal(blokken["deliveroo"]["netto_30d"])
+        + Decimal(blokken["deliveroo"]["commissie_30d"])
     )
-    assert blokken["tgtg"]["inhouding_pct"] is not None
+    assert blokken["deliveroo"]["inhouding_pct"] is not None
 
 
 def test_kanalen_zonder_kosttabel_zetten_de_reden_erbij():
-    rijen = [("2026-06-11", "99", "Zak", "tgtg", 2.0, 8.0),
+    rijen = [("2026-06-11", "99", "Bestelling", "deliveroo", 2.0, 8.0),
              ("2026-06-11", "10", "Brood", "winkel", 1.0, 100.0)]
     verkopen = _verkopen(rijen)
     kal = canoniek.bouw_kalender(verkopen)
@@ -1266,17 +1265,16 @@ def test_kanalen_zonder_kosttabel_zetten_de_reden_erbij():
                    bijgewerkt_op=BIJGEWERKT, gemeten_tot=None,
                    ontbrekend={}, kanaalkost=None)
     blokken = {k["kanaal"]: k for k in a["data"]["kanalen"]}
-    assert blokken["tgtg"]["bruto_30d"] is None
+    assert blokken["deliveroo"]["bruto_30d"] is None
     reden = next(o["reden"] for o in a["onbeschikbaar"]
-                 if o["veld"] == "kanaal.tgtg.kost")
+                 if o["veld"] == "kanaal.deliveroo.kost")
     assert "commissie" in reden.lower()
 
 
 def test_bevroren_kanaal_toont_tot_wanneer_de_data_loopt():
-    # TGTG heeft historiek maar niets in het 30-dagenvenster (blok 9 is
-    # geschrapt, dus dit wordt de blijvende toestand): de reden zegt tot
-    # wanneer de data loopt, en niet "geen data ingeladen".
-    rijen = [("2026-03-05", "99", "Zak", "tgtg", 2.0, 8.0)]
+    # Een kanaal met historiek maar niets in het 30-dagenvenster: de reden
+    # zegt tot wanneer de data loopt, en niet "geen data ingeladen".
+    rijen = [("2026-03-05", "99", "Bestelling", "deliveroo", 2.0, 8.0)]
     for d in pd.date_range("2026-06-01", periods=20, freq="D"):
         rijen.append((d.date().isoformat(), "10", "Brood", "winkel", 1.0, 100.0))
     verkopen = _verkopen(rijen)
@@ -1287,13 +1285,9 @@ def test_bevroren_kanaal_toont_tot_wanneer_de_data_loopt():
     a = ct.kanalen(totalen, tot, bron=["odoo"], bijgewerkt_op=BIJGEWERKT,
                    gemeten_tot=tot, ontbrekend={}, kanaalkost=None)
     reden = next(o["reden"] for o in a["onbeschikbaar"]
-                 if o["veld"] == "kanaal.tgtg")
+                 if o["veld"] == "kanaal.deliveroo")
     assert "5 maart 2026" in reden
     assert "ingeladen" not in reden
-    # en een kanaal zonder enige historiek houdt de oude, eerlijke reden
-    reden_dv = next(o["reden"] for o in a["onbeschikbaar"]
-                    if o["veld"] == "kanaal.deliveroo")
-    assert "ingeladen" in reden_dv
 
 
 def test_producten_dragen_de_drilldown_met_restregel():

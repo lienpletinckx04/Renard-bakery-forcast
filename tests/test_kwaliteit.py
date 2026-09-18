@@ -127,11 +127,10 @@ def test_ongemeten_dagen_die_geen_sluiting_verklaart_blijven_achter():
 
 def test_deliveroo_ontbreekt_met_reden_maar_zonder_alarm():
     tot = D(2026, 5, 10)
-    # Mét een verse TGTG-rij en een kalender die ver genoeg vooruitloopt:
-    # anders geven de tgtg-bron en de kalenderdekking elk terecht een let_op,
-    # en meet deze test niet wat hij wil meten (deliveroo alleen).
-    verkopen = _verkopen(_week_verkopen(tot)
-                         + [(tot, "1", "9", "Pakket", "tgtg", 2.0, 8.0)])
+    # Een kalender die ver genoeg vooruitloopt, anders geeft de
+    # kalenderdekking terecht een let_op en meet deze test niet wat hij wil
+    # meten (deliveroo alleen).
+    verkopen = _verkopen(_week_verkopen(tot))
     kal = _kalender(
         [(tot - dt.timedelta(days=i), True, True) for i in range(14)]
         + [(tot + dt.timedelta(days=i), False, False) for i in range(1, 21)]
@@ -141,34 +140,6 @@ def test_deliveroo_ontbreekt_met_reden_maar_zonder_alarm():
     assert deliveroo["status"] == "ontbreekt"
     assert "Partner Hub" in deliveroo["toelichting"]
     assert uit["ergste"] == "goed"
-
-
-def test_tgtg_heeft_een_maandelijkse_lat(monkeypatch):
-    """De lat zelf, gemeten met het kanaal uit de bevriezing gehaald.
-
-    TGTG staat sinds 19 augustus 2026 in `BEVROREN` en wordt dus niet meer
-    tegen de klok gemeten (zie de test hieronder). De maandelijkse lat blijft
-    wel in de code staan voor het geval de aanlevering ooit hervat, en zonder
-    deze test zou die code ongedekt zijn — precies de plek waar hij stilletjes
-    kapot zou gaan tegen de tijd dat iemand hem weer nodig heeft.
-
-    Dat het kanaal hier uit `BEVROREN` gehaald wordt en tóch niet in de
-    dagelijkse tak valt, is geen toeval: het houdt zijn lat in
-    `ACHTER_DAGEN_PER_KANAAL`, en `bronstanden` routeert op beide lijsten.
-    """
-    monkeypatch.setattr(kw, "BEVROREN", ())
-    vandaag = D(2026, 5, 1)
-    vers = _verkopen(_week_verkopen(D(2026, 4, 20))
-                     + [(D(2026, 3, 31), "1", "9", "Pakket", "tgtg", 2.0, 8.0)])
-    kal = _kalender([(D(2026, 4, 20) - dt.timedelta(days=i), True, True)
-                     for i in range(14)])
-    standen = {b.bron: b for b in kw.bronstanden(vers, kal, vandaag=vandaag)}
-    assert standen["tgtg"].status == "vers"  # 31 dagen oud, binnen 45
-
-    oud = _verkopen(_week_verkopen(D(2026, 4, 20))
-                    + [(D(2026, 2, 1), "1", "9", "Pakket", "tgtg", 2.0, 8.0)])
-    standen = {b.bron: b for b in kw.bronstanden(oud, kal, vandaag=vandaag)}
-    assert standen["tgtg"].status == "achter"
 
 
 def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
@@ -188,14 +159,13 @@ def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
     """
     monkeypatch.setattr(kw, "BRONNEN",
                         kw.BRONNEN + (("marktkraam", "marktkraam"),))
-    monkeypatch.setattr(kw, "BEVROREN", ("tgtg", "marktkraam"))
+    monkeypatch.setattr(kw, "BEVROREN", ("marktkraam",))
 
     laatste_kraam = D(2026, 6, 20)
     tot = D(2027, 3, 10)
     vandaag = D(2027, 3, 11)
     verkopen = _verkopen(
         _week_verkopen(tot)
-        + [(D(2026, 7, 31), "1", "9", "Pakket", "tgtg", 2.0, 8.0)]
         + [(laatste_kraam, "1", "9", "Pakket", "marktkraam", 2.0, 8.0)]
     )
     kal = _kalender(
@@ -206,7 +176,7 @@ def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
     uit = kw.stand(verkopen, kal, vandaag=vandaag)
     kraam = next(b for b in uit["bronnen"] if b["bron"] == "marktkraam")
 
-    # Bijna negen maanden oud, en toch geen alarm: precies zoals bij TGTG.
+    # Bijna negen maanden oud, en toch geen alarm: de bevriezing werkt.
     assert kraam["status"] == "bevroren"
     assert kraam["laatste_meetdag"] == laatste_kraam.isoformat()
     assert laatste_kraam.isoformat() in kraam["toelichting"]
@@ -221,8 +191,7 @@ def test_een_periodiek_kanaal_zonder_bevriezing_mijdt_de_dagelijkse_tak(monkeypa
     bron die niet afwezig is en niet bevroren, maar met de hand periodiek
     opgeladen wordt. Zonder deze test zou zo'n kanaal in `_stand_dagelijks`
     vallen — met `MAX_ONGEMETEN_DAGEN` op twee, dus twee dagen na de laatste
-    oplading permanent 'achter'. Dat is exact de trap die op 19 augustus voor
-    TGTG is weggehaald, en ze zou hier gewoon opnieuw dichtklappen.
+    oplading permanent 'achter'.
 
     De test toetst dus twee dingen tegelijk: dat de eigen lat gebruikt wordt
     (ver voorbij de twee dagen van de dagelijkse tak, en toch 'vers'), en dat
@@ -258,7 +227,6 @@ def test_een_periodiek_kanaal_zonder_bevriezing_mijdt_de_dagelijkse_tak(monkeypa
     assert binnen.status == "vers"
     # De kanaalnaam staat in de zin; de bron is niet meer hardgecodeerd.
     assert "marktkraam" in binnen.toelichting
-    assert "TGTG" not in binnen.toelichting
 
     # 100 dagen: voorbij de eigen lat van 90, en dan is het wél een signaal.
     assert _stand_van_de_kraam(D(2026, 1, 31)).status == "achter"
@@ -276,40 +244,6 @@ def test_een_kanaal_zonder_eigen_lat_valt_terug_op_de_maandlat():
     deel = _verkopen([(D(2026, 3, 12), "1", "9", "Pakket", "kar", 2.0, 8.0)])
     # 60 dagen oud: voorbij de 45 van de maandelijkse bron, dus 'achter'.
     assert kw._stand_periodiek("kar", deel, D(2026, 5, 11)).status == "achter"
-
-
-def test_bevroren_tgtg_veroudert_nooit_tot_een_alarm():
-    """Het geval waarvoor `BEVROREN` bestaat: een jaar later, nog steeds rustig.
-
-    Zonder de bevriezing passeert de jongste TGTG-dag (31 juli 2026) op
-    14 september 2026 de lat van 45 dagen en staat het kanaal 'achter'. Dat
-    zet `ergste` op let_op, en dat oordeel draagt de voettekst van élk scherm
-    plus een briefingpunt — permanent, achttien dagen na de oplevering, over
-    een toestand waar niemand iets aan kan doen.
-
-    Deze test kiest daarom bewust een datum ver voorbij die grens.
-    """
-    laatste_tgtg = D(2026, 7, 31)
-    tot = D(2027, 6, 10)
-    vandaag = D(2027, 6, 11)
-    verkopen = _verkopen(
-        _week_verkopen(tot)
-        + [(laatste_tgtg, "1", "9", "Pakket", "tgtg", 2.0, 8.0)]
-    )
-    kal = _kalender(
-        [(tot - dt.timedelta(days=i), True, True) for i in range(14)]
-        + [(tot + dt.timedelta(days=i), False, False) for i in range(1, 21)]
-    )
-
-    uit = kw.stand(verkopen, kal, vandaag=vandaag)
-    tgtg = next(b for b in uit["bronnen"] if b["bron"] == "tgtg")
-
-    assert tgtg["status"] == "bevroren"
-    # Het feit blijft staan: tot wanneer de historiek loopt, en waarom ze daar
-    # ophoudt. Wat verdwijnt is alleen het alarm.
-    assert tgtg["laatste_meetdag"] == laatste_tgtg.isoformat()
-    assert laatste_tgtg.isoformat() in tgtg["toelichting"]
-    assert uit["ergste"] == "goed"
 
 
 def test_dubbele_sleutels_zijn_fout_en_unieke_zijn_goed():
