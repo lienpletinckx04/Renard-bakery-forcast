@@ -1,0 +1,33 @@
+# Wat er NIET naar Vercel geüpload wordt.
+#
+# Waarom dit bestand bestaat: Vercel leest de .gitignore van de DEPLOYWORTEL, en
+# dat is platform/. De regel die `platform/contract/` buiten git houdt staat in
+# de .gitignore van de repowortel, en die kijkt Vercel niet aan. Zonder dit
+# bestand zouden de gebouwde contractbestanden -- geaggregeerde omzetcijfers van
+# de eindklant -- gewoon meegaan in de upload. Gemeten en dichtgezet op
+# 18 augustus 2026, bij de eerste deploy.
+#
+# Ze zijn daar ook niet nodig: met CONTRACT_BRON=db leest het platform de
+# antwoorden op het moment van het verzoek uit contract_antwoord (PostgREST).
+# Wat er niet staat, kan niet uitlekken.
+
+contract/
+rapporten/
+
+# Sleutels. Vercel neemt zijn omgevingsvariabelen uit de projectinstellingen en
+# nooit uit een meegestuurd bestand; een geüpload .env.local zou alleen maar een
+# tweede vindplaats zijn.
+.env
+.env.*
+!.env.example
+
+# Bouwuitvoer en afhankelijkheden: Vercel bouwt zelf, een meegestuurde .next is
+# in het beste geval verspilde upload en in het slechtste een oude versie.
+.next/
+node_modules/
+out/
+*.tsbuildinfo
+
+# Machinegebonden toestand.
+.vercel
+.DS_Store

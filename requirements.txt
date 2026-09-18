@@ -1,0 +1,29 @@
+# Bewust kort. Elke dependency erbij moet zich verdienen in de backtest.
+#
+# Sinds 18 aug 2026 met bovengrens, zoals psycopg en weasyprint hieronder al
+# hadden: een stille major-upgrade van de bibliotheken die de cijfers dragen
+# mag nooit de reden zijn dat een getal verandert. Verhogen is een bewuste
+# handeling: grens optrekken, `make test` en `make backtest`, verschil
+# verantwoorden. De ondergrenzen staan op wat er werkelijk draait en getest
+# is (pip list, 18 aug) — de oude `pandas>=2.2` beloofde een compatibiliteit
+# die niemand meer toetste.
+pandas>=3.0,<4
+numpy>=2.1,<3
+openpyxl>=3.1,<4     # xlsx-exports
+pyarrow>=15.0,<27    # parquet, snelle io
+holidays>=0.50,<1    # Belgische feestdagen; de language-kwarg is een 0.x-API-detail
+pytest>=8.0,<10
+# ruff strakker begrensd dan de rest: elke minor voegt regels toe, en een
+# nieuwe regel maakt `make lint` rood op een push die er niets aan kan doen.
+ruff>=0.16,<0.17
+
+# De ETL praat rechtstreeks met Postgres, niet via de REST-API: die kent geen
+# COPY en geen transacties over meerdere statements. Versie 3.3.x is in
+# stack.md vastgelegd. `[binary]` scheelt een lokale libpq-installatie.
+psycopg[binary]>=3.3,<3.4
+
+# WeasyPrint stond hier tot 18 aug 2026 voor het CFO-rapport, met een
+# systeemafhankelijkheid erbij (pango via Homebrew). Het rapport is een weergave
+# in het platform geworden en de browser maakt de PDF, dus die afhankelijkheid is
+# weg — inclusief het gebrek dat `beslissingen.md` er op 13 aug al bij noteerde:
+# een hostingplatform zonder Homebrew kon dit rapport niet bouwen.

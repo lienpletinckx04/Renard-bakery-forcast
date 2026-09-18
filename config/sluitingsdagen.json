@@ -1,0 +1,36 @@
+{
+  "_toelichting": [
+    "Aangekondigde sluitingen, invoer voor het prognosevenster. Zie",
+    "bakkerij/sluitingsdagen.py. Velden per regel: van, tot (mag weg voor",
+    "één dag), reden. Andere velden worden genegeerd.",
+    "",
+    "2026-08-15, gecorrigeerd. Deze lijst bevatte alleen 17 t/m 23 augustus,",
+    "en daardoor zette de prognose een omzetverwachting op 15 en 16 augustus.",
+    "De jaarlijkse sluiting begint op 1 augustus: de kassa mat 1 t/m 7",
+    "augustus gesloten, en Lien bevestigde op 12 augustus (antwoord op vraag",
+    "27) dat de bakkerij in verlof is tot 23 augustus. De dagen 1 t/m 7",
+    "worden al door de meting afgevangen; ze staan hier voor de volledigheid,",
+    "zodat de lijst zegt wat er werkelijk gebeurd is in plaats van alleen het",
+    "stuk dat nog niet gemeten was.",
+    "",
+    "De einddatum is de laatste GESLOTEN dag. 24 augustus is de eerste dag",
+    "dat de zaak weer open is; dat is ook de dag waarop de Franstalige",
+    "rentrée valt.",
+    "",
+    "2026-08-19, VERHUISD van data/config/ naar config/, en dus IN GIT. De",
+    "reden: data/ is gitignored omdat daar klantdata staat, en dit bestand",
+    "bevat er geen — het zijn de openingsdagen van de zaak, geen transacties.",
+    "Zolang het buiten git stond, kon de nachtelijke synchronisatie op een",
+    "GitHub-runner nooit slagen: zonder deze lijst verdwijnt gepland_dicht uit",
+    "de kalender en meldt het platform een geplande sluiting als achterstand.",
+    "",
+    "GEVOLG VOOR WIE HIER IETS BIJZET: 'reden' komt op het scherm én staat",
+    "vanaf nu in de git-geschiedenis, voorgoed. Hou hem dus zakelijk —",
+    "'Jaarlijkse sluiting', 'Verbouwing' — en zet er nooit een naam of een",
+    "persoonlijke omstandigheid in. Wie dat wél nodig heeft, laat de reden weg;",
+    "het veld mag leeg."
+  ],
+  "sluitingen": [
+    {"van": "2026-08-01", "tot": "2026-08-23", "reden": "Jaarlijkse sluiting"}
+  ]
+}

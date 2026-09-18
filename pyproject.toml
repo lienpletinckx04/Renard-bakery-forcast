@@ -1,0 +1,10 @@
+# Eén plek voor de gereedschapsconfig. Bestond tot 18 aug 2026 niet, met als
+# gevolg dat `pytest tests/` zonder `python -m` op `import bakkerij` viel:
+# alleen `python -m pytest` zet de repowortel op sys.path. De Makefile deed
+# het toevallig goed; wie pytest los aanriep, zag een raadselachtige fout.
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"

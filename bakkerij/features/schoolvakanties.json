@@ -1,0 +1,515 @@
+{
+  "bron": "openholidaysapi.org (BE-NL en BE-FR, taal NL) + handmatige randen; ververst door scripts/vakanties_ververs.py",
+  "ververst_op": "2026-08-14",
+  "toelichting": "Publieke data, hoort in git. Periodes zijn inclusief en volgen de bron; het weekend in een vakantieweek hoort bij het vakantieregime. BE-DE is bewust geen kandidaatregime.",
+  "regimes": {
+    "VL": [
+      {
+        "naam": "zomer_2019",
+        "van": "2019-07-01",
+        "tot": "2019-08-31",
+        "bron": "handmatig 14 aug 2026: pre-hervorming, beide gemeenschappen gelijk"
+      },
+      {
+        "naam": "herfst_2019",
+        "van": "2019-10-28",
+        "tot": "2019-11-03",
+        "bron": "handmatig 14 aug 2026: pre-hervorming, beide gemeenschappen gelijk"
+      },
+      {
+        "naam": "kerst_2019",
+        "van": "2019-12-23",
+        "tot": "2020-01-05",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2020",
+        "van": "2020-02-24",
+        "tot": "2020-03-01",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2020",
+        "van": "2020-04-06",
+        "tot": "2020-04-19",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2020",
+        "van": "2020-07-01",
+        "tot": "2020-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2020",
+        "van": "2020-11-02",
+        "tot": "2020-11-15",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2020",
+        "van": "2020-12-21",
+        "tot": "2021-01-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2021",
+        "van": "2021-02-15",
+        "tot": "2021-02-21",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2021",
+        "van": "2021-04-05",
+        "tot": "2021-04-18",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2021",
+        "van": "2021-07-01",
+        "tot": "2021-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2021",
+        "van": "2021-11-01",
+        "tot": "2021-11-07",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2021",
+        "van": "2021-12-24",
+        "tot": "2022-01-09",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2022",
+        "van": "2022-02-28",
+        "tot": "2022-03-06",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2022",
+        "van": "2022-04-04",
+        "tot": "2022-04-18",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2022",
+        "van": "2022-07-01",
+        "tot": "2022-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2022",
+        "van": "2022-10-31",
+        "tot": "2022-11-06",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2022",
+        "van": "2022-12-26",
+        "tot": "2023-01-08",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2023",
+        "van": "2023-02-20",
+        "tot": "2023-02-26",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2023",
+        "van": "2023-04-03",
+        "tot": "2023-04-16",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2023",
+        "van": "2023-07-01",
+        "tot": "2023-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2023",
+        "van": "2023-10-30",
+        "tot": "2023-11-05",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2023",
+        "van": "2023-12-25",
+        "tot": "2024-01-07",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2024",
+        "van": "2024-02-12",
+        "tot": "2024-02-18",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2024",
+        "van": "2024-04-01",
+        "tot": "2024-04-14",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2024",
+        "van": "2024-07-01",
+        "tot": "2024-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2024",
+        "van": "2024-10-28",
+        "tot": "2024-11-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2024",
+        "van": "2024-12-23",
+        "tot": "2025-01-05",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "krokus_2025",
+        "van": "2025-03-03",
+        "tot": "2025-03-09",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "paas_2025",
+        "van": "2025-04-07",
+        "tot": "2025-04-21",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "zomer_2025",
+        "van": "2025-07-01",
+        "tot": "2025-08-31",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "herfst_2025",
+        "van": "2025-10-27",
+        "tot": "2025-11-02",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "kerst_2025",
+        "van": "2025-12-22",
+        "tot": "2026-01-04",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "krokus_2026",
+        "van": "2026-02-16",
+        "tot": "2026-02-22",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "paas_2026",
+        "van": "2026-04-06",
+        "tot": "2026-04-19",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "zomer_2026",
+        "van": "2026-07-01",
+        "tot": "2026-08-31",
+        "bron": "handmatig geverifieerd 13 aug 2026 (zie docs/aannames.md A20)"
+      },
+      {
+        "naam": "herfst_2026",
+        "van": "2026-11-02",
+        "tot": "2026-11-08",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2026",
+        "van": "2026-12-21",
+        "tot": "2027-01-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2027",
+        "van": "2027-02-08",
+        "tot": "2027-02-14",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2027",
+        "van": "2027-03-29",
+        "tot": "2027-04-11",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2027",
+        "van": "2027-07-01",
+        "tot": "2027-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2027",
+        "van": "2027-11-01",
+        "tot": "2027-11-07",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2027",
+        "van": "2027-12-27",
+        "tot": "2028-01-09",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2028",
+        "van": "2028-02-28",
+        "tot": "2028-03-05",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      }
+    ],
+    "FR": [
+      {
+        "naam": "zomer_2019",
+        "van": "2019-07-01",
+        "tot": "2019-08-31",
+        "bron": "handmatig 14 aug 2026: pre-hervorming, beide gemeenschappen gelijk"
+      },
+      {
+        "naam": "herfst_2019",
+        "van": "2019-10-28",
+        "tot": "2019-11-03",
+        "bron": "handmatig 14 aug 2026: pre-hervorming, beide gemeenschappen gelijk"
+      },
+      {
+        "naam": "kerst_2019",
+        "van": "2019-12-23",
+        "tot": "2020-01-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2020",
+        "van": "2020-02-24",
+        "tot": "2020-02-28",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2020",
+        "van": "2020-04-06",
+        "tot": "2020-04-17",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2020",
+        "van": "2020-07-01",
+        "tot": "2020-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2020",
+        "van": "2020-11-02",
+        "tot": "2020-11-06",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2020",
+        "van": "2020-12-21",
+        "tot": "2021-01-01",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2021",
+        "van": "2021-02-15",
+        "tot": "2021-02-19",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2021",
+        "van": "2021-04-05",
+        "tot": "2021-04-16",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2021",
+        "van": "2021-07-01",
+        "tot": "2021-08-31",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2021",
+        "van": "2021-11-01",
+        "tot": "2021-11-05",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2021",
+        "van": "2021-12-27",
+        "tot": "2022-01-09",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2022",
+        "van": "2022-02-28",
+        "tot": "2022-03-04",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2022",
+        "van": "2022-04-04",
+        "tot": "2022-04-15",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2022",
+        "van": "2022-07-01",
+        "tot": "2022-08-28",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2022",
+        "van": "2022-10-24",
+        "tot": "2022-11-04",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2022",
+        "van": "2022-12-26",
+        "tot": "2023-01-06",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2023",
+        "van": "2023-02-20",
+        "tot": "2023-03-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2023",
+        "van": "2023-05-01",
+        "tot": "2023-05-12",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2023",
+        "van": "2023-07-08",
+        "tot": "2023-08-27",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2023",
+        "van": "2023-10-23",
+        "tot": "2023-11-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2023",
+        "van": "2023-12-25",
+        "tot": "2024-01-05",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2024",
+        "van": "2024-02-26",
+        "tot": "2024-03-08",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2024",
+        "van": "2024-04-29",
+        "tot": "2024-05-10",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2024",
+        "van": "2024-07-06",
+        "tot": "2024-08-25",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2024",
+        "van": "2024-10-21",
+        "tot": "2024-11-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2024",
+        "van": "2024-12-23",
+        "tot": "2025-01-05",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2025",
+        "van": "2025-02-24",
+        "tot": "2025-03-09",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2025",
+        "van": "2025-04-28",
+        "tot": "2025-05-11",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2025",
+        "van": "2025-07-05",
+        "tot": "2025-08-24",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2025",
+        "van": "2025-10-20",
+        "tot": "2025-11-02",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2025",
+        "van": "2025-12-22",
+        "tot": "2026-01-04",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2026",
+        "van": "2026-02-16",
+        "tot": "2026-03-01",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2026",
+        "van": "2026-04-27",
+        "tot": "2026-05-10",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "zomer_2026",
+        "van": "2026-07-04",
+        "tot": "2026-08-23",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "herfst_2026",
+        "van": "2026-10-19",
+        "tot": "2026-11-01",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "kerst_2026",
+        "van": "2026-12-21",
+        "tot": "2027-01-03",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "krokus_2027",
+        "van": "2027-02-22",
+        "tot": "2027-03-07",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      },
+      {
+        "naam": "paas_2027",
+        "van": "2027-04-26",
+        "tot": "2027-05-09",
+        "bron": "openholidaysapi.org, opgehaald 2026-08-14"
+      }
+    ]
+  }
+}

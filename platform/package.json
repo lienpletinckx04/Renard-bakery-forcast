@@ -1,0 +1,29 @@
+{
+  "name": "platform",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --experimental-strip-types --import ./tests/ts-hook.mjs --test \"tests/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.3.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "_devDependencies_waarom_exact": "Vastgezet op 19 aug 2026, zoals de runtime-afhankelijkheden hierboven al waren. Met een caret schoof `npm install` de types en de compiler mee, en dan staat de bouw rood zonder dat er een regel code veranderde -- op de dag dat iemand na een jaar één ding komt aanpassen. CI draait `npm ci` op de lock en merkte dat nooit. De versies hieronder zijn exact die uit package-lock.json.",
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+/* De zes tokens uit de logogids. Geen enkele kleur daarbuiten. */
+@theme {
+  --color-*: initial;
+  --color-beige: #f4ede6;
+  --color-bordeaux: #a6192e;
+  --color-geel: #f2f0a1;
+  --color-warmgrijs: #c9c0af;
+  --color-zwart: #000000;
+  --color-wit: #ffffff;
+
+  --font-sans: var(--font-inter-tight), sans-serif;
+
+  --radius-*: initial;
+  --radius-klein: 4px;
+}
+
+body {
+  background-color: var(--color-beige);
+  color: var(--color-zwart);
+}
+
+/* Toetsenbordnavigatie is nooit blind: elk element dat focus kan krijgen,
+   toont die met een zwarte ring. Componenten mogen dit verfijnen, maar de
+   basis staat hier zodat een vergeten knop nooit onzichtbaar gefocust is. */
+:focus-visible {
+  outline: 2px solid var(--color-zwart);
+  outline-offset: 2px;
+}
+
+/* Wijd gespatieerde kapitalen voor labels boven kerncijfers, zoals in het logo. */
+.kapitaal-label {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  font-size: 0.6875rem;
+}
+
+/*
+ * Hetzelfde kapitaalregister, één maat en één gewicht zwaarder dan
+ * `.kapitaal-label`. Voor de kop van een blok dat vóór een gewone kaart gelezen
+ * hoort te worden: de briefing ("Wat opvalt") en de onbeschikbaar-vakken.
+ *
+ * Waarom een derde trap en niet een kleur: de rangorde van dit platform komt
+ * uit gewicht, grootte, witruimte, lijndikte en positie — kleur draagt nooit
+ * betekenis, en bordeaux al helemaal niet ("identiteit, nooit betekenis"). Deze
+ * trap zit bewust tussen het kaartlabel (0.6875rem/500) en de paginakop
+ * (1.0625rem/600): een briefingkop wint van een kaart en verliest van de kop
+ * van het scherm.
+ */
+.kapitaal-label-zwaar {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  font-size: 0.8125rem;
+}
+
+/* Paginakop: hetzelfde kapitaalregister als het woordmerk, een maat groter. */
+.kapitaal-kop {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  font-size: 1.0625rem;
+}
+
+/*
+ * Wat een scherm wel heeft en een document niet: formulieren en
+ * beheerhandelingen. Ze blijven staan waar ze horen (Instellingen), maar het
+ * rapport is geen schermafdruk — een kostenformulier op papier is een dood
+ * invulveld. De blokken dragen `data-buiten-rapport` op het scherm zelf, zodat
+ * de beslissing bij het blok staat en niet in een lijst hier.
+ */
+.rapport [data-buiten-rapport] {
+  display: none;
+}
+
+/*
+ * Een gedeeld briefingpunt staat in het rapport één keer.
+ *
+ * HET PROBLEEM. Een briefingpunt over de aanvoer — "De bakkerij is gesloten",
+ * een achterstand, een bron die stilvalt — hoort op élk scherm te staan: wie op
+ * Productmix binnenkomt, moet weten dat de zaak dicht is. Maar /rapport zet die
+ * schermen achter elkaar, en dan openen zes opeenvolgende bladzijden met
+ * dezelfde alinea van 268 tekens. Dat is meer dan lelijk: het leert de lezer
+ * dat de briefing overslaan mag, en juist daar staat wat hij moet weten.
+ *
+ * DE OPLOSSING, EN WAAROM ZE HIER STAAT EN NIET IN EEN COMPONENT. Welk punt
+ * gedeeld is, weet het contract (`briefing.gedeeld`, 19 aug 2026); de component
+ * zet dat om in `data-gedeeld`. Wat er dan nog rest, is een positievraag —
+ * "staat dit onderdeel als eerste?" — en die beantwoordt de opmaaklaag met een
+ * combinator zonder dat er één prop door zes schermcomponenten geregen hoeft te
+ * worden. `.rapportdeel ~ .rapportdeel` is elk onderdeel dat een voorganger
+ * heeft, dus alles behalve het eerste; welk onderdeel dat is, hangt van de
+ * keuze van de lezer af en dat komt hier vanzelf goed.
+ *
+ * WAAROM DAT LAATSTE VEILIG IS. Deze regel verbergt het punt in élk onderdeel
+ * behalve het eerste, ongeacht of het daarvóór al ergens stond. Dat mag alleen
+ * omdat `gedeeld` in de berekeningslaag "staat op elk scherm" betekent en niets
+ * minder — welk onderdeel er ook vooraan staat, het draagt het punt. Een punt
+ * dat zich maar op twee schermen herhaalt (het bronpunt over Deliveroo) is
+ * daarom uitdrukkelijk níét gemerkt: het zou hier verdwijnen in plaats van
+ * ontdubbeld worden. Zie `bakkerij/briefing._bronpunt`.
+ *
+ * `display: none` en niet `visibility`: zo verdwijnt het punt ook uit de
+ * toegankelijkheidsboom, en leest een schermlezer de alinea één keer in plaats
+ * van zes keer.
+ *
+ * DE TWEEDE REGEL is het geval waarin een scherm niets eigens te melden heeft.
+ * Zonder haar blijft daar een kop "Briefing" staan met een lege lijst eronder,
+ * en dat leest als een blok dat stukgelopen is. `allesGedeeld` in
+ * lib/briefing.ts bepaalt dat; een lege briefing valt er bewust buiten, want
+ * daar staat de leeg-zin en die hoort te blijven.
+ */
+.rapport .rapportdeel ~ .rapportdeel [data-gedeeld],
+.rapport .rapportdeel ~ .rapportdeel [data-alles-gedeeld] {
+  display: none;
+}
+
+/*
+ * Het handgetekende verticale lijnpatroon uit de logogids: licht slingerende
+ * lijnen in warmgrijs op beige, zoals op de broodzak en het inpakpapier.
+ * Alleen op beige vlakken gebruiken, nooit op bordeaux of op wit.
+ * De tegel is 288px breed met vier lijnen die elk anders slingeren, zodat de
+ * herhaling niet opvalt; begin- en eindhelling sluiten op elkaar aan zodat de
+ * verticale herhaling naadloos is.
+ */
+.lijnpatroon {
+  background-color: var(--color-beige);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='288' height='320' viewBox='0 0 288 320'%3E%3Cg fill='none' stroke='%23C9C0AF' stroke-width='1.2' opacity='0.55'%3E%3Cpath d='M36 0 C33 55 39 110 36 160 C33 215 39 270 36 320'/%3E%3Cpath d='M108 0 C111 50 105 105 108 160 C111 215 105 265 108 320'/%3E%3Cpath d='M180 0 C177.5 60 182.5 115 180 165 C177.5 220 182.5 275 180 320'/%3E%3Cpath d='M252 0 C255 45 249 100 252 155 C255 215 249 270 252 320'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 288px 320px;
+}
+
+/* ---------------------------------------------------------------------------
+ * Op papier
+ *
+ * Het rapport (/rapport) is een weergave van de schermen zelf; de PDF maakt de
+ * browser eruit. Deze regels zijn daarom geen tweede opmaak, maar de aanpassing
+ * van één ding: het medium.
+ *
+ * DE HARDE VOORWAARDE. Een printer neemt achtergrondvlakken pas mee als de
+ * lezer dat aanvinkt, en in Chrome, Safari en Firefox staat dat standaard uit.
+ * Een ontwerp dat op vullingen leunt, valt daar dus om: het beige vlak
+ * verdwijnt, elk wit paneel wordt onvindbaar op wit papier, en een wit cijfer op
+ * een bordeaux vlak wordt onleesbaar. De structuur komt op papier daarom uit
+ * lijnen, en de merkkleur uit wat een printer altijd wél meeneemt: tekst en SVG.
+ * Wat overblijft is bordeaux in de koppen, in de staven en in de lijnen van elke
+ * grafiek, zwarte cijfers, en haarlijnen om de panelen — het platform, in de
+ * taal van papier.
+ * --------------------------------------------------------------------------- */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 13mm;
+  }
+
+  /* Schermchroom: navigatie, taalkiezer, de knoppenrij van het rapport. */
+  .niet-afdrukken {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: var(--color-wit);
+  }
+
+  /* Structuur uit lijnen in plaats van uit vlakken, en nooit een paneel dat
+     halverwege over een bladzijdegrens knipt. */
+  .paneel,
+  .kerncijfer {
+    border: 1px solid var(--color-warmgrijs);
+    break-inside: avoid;
+  }
+
+  /* Het bordeaux kerncijfervlak wordt op papier een paneel met zwarte cijfers.
+     Zie Kerncijfer.tsx: de vaste positie blijft, alleen de drager verandert. */
+  .kerncijfer-accent {
+    background: var(--color-wit) !important;
+  }
+  .kerncijfer-accent * {
+    color: var(--color-zwart) !important;
+  }
+
+  /* Elk gekozen onderdeel begint op een nieuwe bladzijde, zodat een rapport van
+     drie onderdelen ook drie herkenbare delen is. Het eerste onderdeel sluit
+     aan op de kop van het rapport. */
+  .rapportdeel {
+    break-before: page;
+  }
+  .rapport > header + .rapportdeel {
+    break-before: auto;
+  }
+
+  /* De periodekiezer is op papier geen kiezer meer: alleen het gekozen venster
+     blijft staan, als kopje boven zijn eigen grafiek. Drie tabs die niemand kan
+     aanklikken, zouden op een afdruk suggereren dat er meer te zien is. */
+  [role="tab"][aria-selected="false"] {
+    display: none;
+  }
+
+  /* Uitklapbare toelichting staat in het rapport open (Rapportknoppen.tsx zet
+     elke <details> open, want CSS kan dat niet). Op papier is de klikbare
+     samenvattingsregel dan alleen nog ruis.
+
+     Behalve die van een uitklapbare KAART: daar is de samenvattingsregel de kop
+     van het blok, en die weghalen laat een paneel zonder titel achter. Zonder
+     deze uitzondering verloor elk uitklapbaar blok zijn naam in de PDF (19 aug
+     2026, gevonden bij het bouwen van KaartUitklap). De ▸ verdwijnt wel: op
+     papier klapt niemand iets open.
+
+     ALLEEN BINNEN .rapport, en dat is een correctie van 19 aug 2026 (avond).
+     Deze regel stond ongebonden en gold dus ook wanneer iemand een gewoon
+     scherm afdrukt met Ctrl+P. Daar draait Rapportknoppen niet, dus daar staat
+     een dichte <details> ook echt dicht — en dan verbergt deze regel de énige
+     regel die er nog van te zien was. Het resultaat op papier was een blok dat
+     spoorloos verdween in plaats van een kop met een dichte inhoud, en dat is
+     precies de stilte die harde regel 8 verbiedt. Buiten het rapport blijft de
+     samenvattingsregel dus staan; ze is daar geen ruis maar het bewijs dat er
+     iets onder zit. */
+  .rapport details > summary:not(.uitklap-kop) {
+    display: none;
+  }
+  summary.uitklap-kop [aria-hidden="true"] {
+    display: none;
+  }
+}

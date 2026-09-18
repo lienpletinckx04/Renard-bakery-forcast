@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+# Deze twee regels zijn door `vercel link` toegevoegd (18 aug 2026) en blijven
+# staan: .vercel is machinegebonden toestand, .env* draagt sleutels.
+.vercel
+.env*
+
+# Maar .env.example is documentatie en hoort wél in de repo -- zonder deze
+# uitzondering is een nieuw voorbeeldbestand stil onzichtbaar, precies zoals
+# `*.sql` op 13 aug bijna de migraties uit git hield. Het bestaande
+# platform/.env.example blijft gevolgd omdat git een al gevolgd bestand niet
+# alsnog negeert; dit is er voor de vólgende.
+!.env.example
