@@ -17,10 +17,17 @@ on:
     - cron: "30 1 * * *"
   workflow_dispatch: {}
 
+# `issues: write` draagt de faalmelding onderaan. Zonder deze regel faalt die
+# stap zelf met een 403 en verdwijnt de storing in een logboek dat niemand
+# opent -- precies het stille falen dat de melding moest voorkomen.
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
@@ -39,14 +46,60 @@ jobs:
         # (een ontbrekende .env is daar bewust fataal, zie de moduledocstring)
         # -- omgevingsvariabelen alleen volstaan niet. Dit bestand leeft nooit
         # langer dan de job: de runner wordt na afloop weggegooid.
+        #
+        # Via `env:` en Python, niet via een shell-heredoc: een wachtwoord met
+        # een `$`, een backtick of een `!` erin wordt door de shell stilzwijgend
+        # vervangen of afgekapt, en dan faalt de verbinding met een melding die
+        # naar het wachtwoord wijst in plaats van naar deze regel.
+        env:
+          ODOO_URL: ${{ secrets.ODOO_URL }}
+          ODOO_DB: ${{ secrets.ODOO_DB }}
+          ODOO_USER: ${{ secrets.ODOO_USER }}
+          ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          cat > .env <<EOF
-          ODOO_URL=${{ secrets.ODOO_URL }}
-          ODOO_DB=${{ secrets.ODOO_DB }}
-          ODOO_USER=${{ secrets.ODOO_USER }}
-          ODOO_API_KEY=${{ secrets.ODOO_API_KEY }}
-          SUPABASE_DB_URL=${{ secrets.SUPABASE_DB_URL }}
-          EOF
+          python3 - <<'PY'
+          import os
+          import pathlib
+
+          NAMEN = ["ODOO_URL", "ODOO_DB", "ODOO_USER", "ODOO_API_KEY", "SUPABASE_DB_URL"]
+          regels = [f"{naam}={os.environ.get(naam, '').strip()}" for naam in NAMEN]
+          pathlib.Path(".env").write_text("\n".join(regels) + "\n", encoding="utf-8")
+
+          # Alleen of ze gevuld zijn, nooit wát erin staat.
+          leeg = [naam for naam in NAMEN if not os.environ.get(naam, "").strip()]
+          if leeg:
+              raise SystemExit(
+                  "Deze secrets zijn leeg of ontbreken: " + ", ".join(leeg) + ".\n"
+                  "Zet ze onder Settings -> Secrets and variables -> Actions."
+              )
+          print(f"Alle {len(NAMEN)} secrets zijn aanwezig.")
+          PY
+
+      - name: Verbindingsstring toetsen vóór het zware werk
+        # De ketting begint met een extract van ruim een miljoen bonregels en
+        # schrijft pas daarna naar Postgres. Een DSN die niet deugt, viel dus
+        # pas op ná dat extract. Deze stap draait dezelfde pure toets die de
+        # ETL gebruikt (bakkerij/db/verbinding.py) en faalt binnen een seconde,
+        # met de reden erbij. De string zelf komt nooit in het logboek.
+        run: |
+          .venv/bin/python - <<'PY'
+          import sys
+
+          sys.path.insert(0, ".")
+          from bakkerij.db.verbinding import controleer_dsn, normaliseer_dsn
+          from bakkerij.omgeving import laad_env
+          import os
+
+          laad_env()
+          bezwaren = controleer_dsn(normaliseer_dsn(os.environ.get("SUPABASE_DB_URL", "")))
+          if bezwaren:
+              print("SUPABASE_DB_URL deugt niet:")
+              for bezwaar in bezwaren:
+                  print(f"  - {bezwaar}")
+              raise SystemExit(1)
+          print("SUPABASE_DB_URL heeft de juiste vorm.")
+          PY
 
       - name: Nachtelijke sync
         run: make sync

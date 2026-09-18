@@ -6,7 +6,7 @@ gevonden te worden zonder dat er een Supabase-project hoeft te bestaan.
 """
 import pytest
 
-from bakkerij.db.verbinding import controleer_dsn
+from bakkerij.db.verbinding import controleer_dsn, normaliseer_dsn
 
 GOED = (
     "postgresql://postgres.abcdefghijklm:geheim"
@@ -127,3 +127,48 @@ def test_de_dsn_zelf_staat_nooit_in_een_bezwaar():
     slecht = "postgresql://postgres:HEELGEHEIM@db.x.supabase.co:6543/postgres"
     for bezwaar in controleer_dsn(slecht):
         assert "HEELGEHEIM" not in bezwaar
+
+
+# --- normalisatie: wat het dashboard levert, moet gewoon werken -------------
+
+
+def test_de_gekopieerde_pooler_uri_krijgt_sslmode_erbij():
+    """Wat de knop "Copy" in Supabase geeft, draagt geen sslmode.
+
+    Dat was de enige reden waarom een verder correcte opzet afketste, en het
+    kostte een beheerder een avond. De eis blijft (controleer_dsn toetst er
+    nog steeds op), alleen wordt ze nu ingevuld in plaats van afgedwongen.
+    """
+    uit_dashboard = (
+        "postgresql://postgres.abcdefghijklm:geheim"
+        "@aws-0-eu-central-1.pooler.supabase.com:5432/postgres"
+    )
+    assert controleer_dsn(uit_dashboard), "zonder sslmode hoort er een bezwaar"
+    assert controleer_dsn(normaliseer_dsn(uit_dashboard)) == []
+
+
+def test_een_bestaande_sslmode_blijft_staan():
+    """verify-full is strenger dan require; die keuze is niet aan ons."""
+    strenger = GOED.replace("sslmode=require", "sslmode=verify-full")
+    assert normaliseer_dsn(strenger) == strenger
+
+
+def test_een_andere_queryparameter_blijft_behouden():
+    met_extra = GOED.replace("?sslmode=require", "?application_name=bakkerij")
+    genormaliseerd = normaliseer_dsn(met_extra)
+    assert "application_name=bakkerij" in genormaliseerd
+    assert controleer_dsn(genormaliseerd) == []
+
+
+def test_regeleindes_en_spaties_van_het_plakken_verdwijnen():
+    """Een secret-veld plakt graag een regeleinde achter de waarde."""
+    assert normaliseer_dsn(f"  {GOED}\n") == GOED
+
+
+def test_normaliseren_verzint_geen_poort_of_host():
+    """Die twee dragen een keuze en horen zichtbaar te blijven, niet geraden."""
+    zonder_poort = (
+        "postgresql://postgres.abcdefghijklm:geheim"
+        "@aws-0-eu-central-1.pooler.supabase.com/postgres"
+    )
+    assert controleer_dsn(normaliseer_dsn(zonder_poort)), "poort blijft een bezwaar"

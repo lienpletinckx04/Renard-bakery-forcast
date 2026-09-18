@@ -130,13 +130,42 @@ def controleer_dsn(dsn: str) -> list[str]:
     return bezwaren
 
 
+def normaliseer_dsn(dsn: str) -> str:
+    """Repareer de twee dingen die bij plakken standaard misgaan.
+
+    Dit is geen soepelheid maar een gemeten wrijvingspunt: de knop "Copy" in
+    het Supabase-dashboard levert de pooler-URI *zonder* `sslmode`, en een
+    secret-veld of een teksteditor plakt er graag een regeleinde achter. Beide
+    gaven een afwijzing die de beheerder zelf moest oplossen, midden in een
+    opzet waarin niets anders mis was. De eis zelf blijft onverkort staan --
+    `controleer_dsn` toetst nog steeds op `sslmode=require` -- alleen vult
+    deze functie hem aan in plaats van de beheerder ernaar te laten raden.
+
+    Wat hier NIET gebeurt: een ontbrekende poort of een verkeerde host
+    bijschrijven. Die twee dragen een keuze (session- versus transaction mode,
+    IPv4 versus IPv6) en die keuze hoort zichtbaar te zijn, niet geraden.
+    """
+    dsn = dsn.strip()
+    if not dsn:
+        return dsn
+
+    try:
+        ontleed = urlparse(dsn)
+    except ValueError:
+        return dsn  # onontleedbaar: controleer_dsn zegt dat zo dadelijk netjes
+
+    if "sslmode" in parse_qs(ontleed.query):
+        return dsn
+    return dsn + ("&" if ontleed.query else "?") + "sslmode=require"
+
+
 def dsn_uit_omgeving(variabele: str = "SUPABASE_DB_URL") -> str:
     """Haal de verbindingsstring uit de omgeving en toets hem.
 
     Werpt met een leesbare uitleg als er iets niet klopt. De string zelf komt
     NOOIT in de foutmelding terecht -- daar staat het wachtwoord in.
     """
-    dsn = os.environ.get(variabele, "")
+    dsn = normaliseer_dsn(os.environ.get(variabele, ""))
     bezwaren = controleer_dsn(dsn)
     if bezwaren:
         regels = "\n".join(f"  - {b}" for b in bezwaren)
