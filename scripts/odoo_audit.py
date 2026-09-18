@@ -121,7 +121,7 @@ if beschikbaar.get(BRONLIJN):
     # fields_get leest het schema en raakt geen enkel record aan. Een
     # search_read met lege veldenlijst gaf hier ALLE velden van een echte rij
     # terug -- partner_id en notities incluis, en dat schendt harde regel 1.
-    beschrijving = o.call(BRONLIJN, "fields_get", [], {"attributes": ["string", "type"]})
+    beschrijving = o.call(BRONLIJN, "fields_get", [], attributes=["string", "type"])
     velden = sorted(beschrijving)
     print(f"Velden op {BRONLIJN} ({len(velden)}):")
     print("  " + ", ".join(velden))
@@ -224,7 +224,7 @@ try:
     # fields_get in plaats van een record lezen: het schema volstaat om
     # kandidaat-velden te vinden, en zo raakt dit blok nooit een echte bon aan
     # (harde regel 1). Werkt bovendien ook op een model zonder records.
-    beschrijving = o.call(BRON, "fields_get", [], {"attributes": ["string", "type"]})
+    beschrijving = o.call(BRON, "fields_get", [], attributes=["string", "type"])
 except ODOO_FOUT as exc:
     # Niet stil overslaan: als dit blok leeg blijft, moet op het scherm staan
     # waarom. Anders leest een lege uitkomst als "er is geen kanaalveld",
