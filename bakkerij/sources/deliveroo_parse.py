@@ -53,10 +53,12 @@ zonder zo'n map wordt niet gelezen.
 """
 from __future__ import annotations
 
+import csv
 import datetime
+import io
 import re
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 #: De map met de rapporten, onder data/raw. Eén submap per download.
 BRONMAP = "Deliveroo"
@@ -125,15 +127,112 @@ def parse_items_sold(tekst: str) -> list[Artikelregel]:
     raise NotImplementedError(NOG_NIET_GEBOUWD)
 
 
+#: De kopregel van het Orders-rapport, zoals Partner Hub hem levert wanneer het
+#: portaal op Nederlands staat. Gemeten op 23 downloads, september 2025 t/m
+#: september 2026. De taal van de kop hangt aan de portaalinstelling en niet aan
+#: het rapport: komt er ooit een Franse of Engelse export binnen, dan hoort daar
+#: een eigen kopregel bij en geen losse vertaalpoging per kolom.
+ORDER_KOLOMMEN = {
+    "restaurant": "Naam restaurant",
+    "order_id": "Bestelnummer",
+    "status": "Bestelstatus",
+    "datum": "Datum ingediend",
+    "subtotaal": "Subtotaal",
+    "commissie": "Deliveroo-commissie",
+    "btw": "Btw op Deliveroo-commissie",
+}
+
+#: De enige status die omzet is. De drie andere die in de historiek voorkomen
+#: (`Geannuleerd`, `Afgewezen (Automatisch afgewezen)`, `Niet gerealiseerd`)
+#: dragen wél een subtotaal maar nul commissie: samen 76 bestellingen en
+#: EUR 1.885,25 over twaalf maanden. Wie niet op status filtert telt dat als
+#: omzet én verlaagt het gemeten commissiepercentage, want de noemer groeit
+#: terwijl de teller gelijk blijft. Een witte lijst en geen zwarte: een status
+#: die Deliveroo er morgen bij verzint, is dan geen stille omzet.
+STATUS_OMZET = "Afgerond"
+
+
+def _decimaal(waarde: str, kolom: str, regel: int) -> Decimal:
+    """Een bedrag uit de export naar Decimal, of een leesbare fout.
+
+    Punt-decimaal, geen duizendtalscheiding: zo levert Partner Hub het, en
+    `Decimal(str)` is hier exact waar `float` dat niet is. Een leeg veld is nul
+    en geen fout -- dat komt voor bij de commissie op een geannuleerde
+    bestelling -- maar tekst die geen getal is, is wél een fout.
+    """
+    schoon = (waarde or "").strip()
+    if schoon == "":
+        return Decimal(0)
+    try:
+        return Decimal(schoon)
+    except InvalidOperation as fout:
+        raise DeliverooFormaatFout(
+            f"regel {regel}: kolom '{kolom}' bevat geen bedrag ({waarde!r})"
+        ) from fout
+
+
 def parse_orders(tekst: str) -> list[Orderregel]:
     """Haalt de bestellingen met commissie uit een Orders-export.
 
-    Nog niet gebouwd -- zie `NOG_NIET_GEBOUWD`. Dit is het waardevolste
-    rapport van de twee: het is de enige bron die de commissie per bestelling
-    mét datum geeft, en daarmee de enige weg naar een marge per kanaal zonder
-    facturen te parsen.
+    Het waardevolste van de twee rapporten: de enige bron die de commissie per
+    bestelling mét datum geeft, en daarmee de enige weg naar een marge per
+    kanaal zonder facturen te parsen.
+
+    DE DATUM IS `Datum ingediend` EN NIET `Bezorgdatum`. Een bestelling hoort
+    bij de dag waarop ze geplaatst is, zoals een kassabon bij de dag hoort
+    waarop hij geslagen is. De twee lopen alleen rond middernacht uiteen: 8 van
+    de 31.139 afgeronde bestellingen in twaalf maanden. Klein verschil, maar
+    het moest een keuze zijn en geen toeval.
+
+    ER ZIT GEEN ARTIKEL IN DIT RAPPORT EN GEEN ORDERSLEUTEL IN HET ANDERE.
+    `Items Sold` draagt geen bestelnummer en geen datum; het telt op over de
+    hele downloadperiode. De "met order-sleutel"-route uit de moduletekst
+    hierboven bestaat dus niet in wat Deliveroo levert, en wat overblijft is
+    het effectieve dagtarief. Dat is geen implementatiedetail maar de reden dat
+    een marge per product bij Deliveroo een benadering blijft.
+
+    ONTDUBBELEN GEBEURT HIER NIET. Downloads overlappen, dus dezelfde
+    bestelling kan twee keer gelezen worden. De sleutel daarvoor is
+    (datum, store_id, order_id) en niet `order_id` alleen: het bestelnummer is
+    kort en per vestiging, dus botsingen tussen winkels zijn te verwachten.
     """
-    raise NotImplementedError(NOG_NIET_GEBOUWD)
+    lezer = csv.DictReader(io.StringIO(tekst))
+    ontbreekt = [k for k in ORDER_KOLOMMEN.values()
+                 if k not in (lezer.fieldnames or [])]
+    if ontbreekt:
+        raise DeliverooFormaatFout(
+            "Orders-export mist de kolom(men) " + ", ".join(ontbreekt)
+            + f". Gelezen kopregel: {lezer.fieldnames}"
+        )
+
+    regels: list[Orderregel] = []
+    for nummer, rij in enumerate(lezer, start=2):  # regel 1 is de kopregel
+        if (rij.get(ORDER_KOLOMMEN["status"]) or "").strip() != STATUS_OMZET:
+            continue
+        ruwe_datum = (rij.get(ORDER_KOLOMMEN["datum"]) or "").strip()
+        try:
+            datum = datetime.date.fromisoformat(ruwe_datum)
+        except ValueError as fout:
+            # Geen eigen datumraadwerk: Partner Hub levert hier ISO, en een
+            # afwijking daarop is een vormwijziging die iemand moet zien --
+            # juist bij Deliveroo, waar de historiek niet opnieuw op te halen is.
+            raise DeliverooFormaatFout(
+                f"regel {nummer}: '{ORDER_KOLOMMEN['datum']}' is geen "
+                f"ISO-datum ({ruwe_datum!r})"
+            ) from fout
+
+        regels.append(Orderregel(
+            datum=datum,
+            store_id=(rij.get(ORDER_KOLOMMEN["restaurant"]) or "").strip(),
+            order_id=(rij.get(ORDER_KOLOMMEN["order_id"]) or "").strip(),
+            subtotaal=_decimaal(rij.get(ORDER_KOLOMMEN["subtotaal"], ""),
+                                ORDER_KOLOMMEN["subtotaal"], nummer),
+            commissie=_decimaal(rij.get(ORDER_KOLOMMEN["commissie"], ""),
+                                ORDER_KOLOMMEN["commissie"], nummer),
+            btw_op_commissie=_decimaal(rij.get(ORDER_KOLOMMEN["btw"], ""),
+                                       ORDER_KOLOMMEN["btw"], nummer),
+        ))
+    return regels
 
 
 def bereik_uit_pad(pad) -> tuple[datetime.date, datetime.date] | None:
