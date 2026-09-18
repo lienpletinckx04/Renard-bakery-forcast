@@ -1,5 +1,38 @@
 # Beheerdraaiboek (F2)
 
+> **Stand 18 september 2026 — lees dit eerst, de tekst hieronder is ouder.**
+>
+> **De nachtelijke sync bestaat nu echt en draait automatisch.** Tot vandaag
+> beschreef dit document (en `todo.md`, en `architectuur.md`) een workflow die
+> nooit in de repo heeft gestaan: er was geen `.github/`-map, in de hele
+> gitgeschiedenis niet. Alles wat in de database stond, was er met de hand in
+> gezet. Sinds vandaag draait `.github/workflows/nachtelijke-sync.yml` elke
+> nacht om 01:30 UTC, en is hij met de hand te starten via Actions →
+> Nachtelijke sync → Run workflow.
+>
+> **De bron is productie, niet meer preprod.** De verkoop komt uit
+> `renard_bakery` op idealis.cloud; de preprod-rijen (kassanamen
+> `Kassa 1/2/3`) zijn als dubbels verwijderd, zie migratie
+> `018_preprod_dubbels.sql`. Elsene en Ukkel staan sinds vandaag apart, via
+> `config/winkels.json`.
+>
+> **Vijf secrets dragen de sync**, onder Settings → Secrets and variables →
+> Actions: `ODOO_URL`, `ODOO_DB`, `ODOO_USER`, `ODOO_API_KEY` en
+> `SUPABASE_DB_PASSWORD` — dat laatste alleen het kale wachtwoord, de workflow
+> bouwt de verbindingsstring zelf (zie `beslissingen.md` voor waarom).
+> `SUPABASE_DB_URL` mag ook en wint, zolang hij de toets doorstaat.
+>
+> **Als de sync faalt**, opent hij een issue in de repo. De reden staat
+> daarnaast in `etl_run` (bron `nachtelijke-sync`); een rij met status `bezig`
+> en een lege `geeindigd_op` is een run die nooit afmaakte. Faalt hij op
+> "n antwoord(en) worden armer", dan is dat de krimpwacht — klopt die krimp
+> (een kanaal of een winkel is er écht uit), start dan handmatig mét het
+> vinkje `krimp_ok`. Zet die nooit vast aan: dan meldt de wacht nooit meer
+> iets, en dat is precies waarvoor ze bestaat.
+>
+> **Wat nog niet klopt:** `fact_bonnen` draagt nog preprod-namen en stopt op
+> 7 augustus. Zie `open-punten.md`.
+
 _Stand 19 augustus 2026. Hoe het platform draait, wat er periodiek moet
 gebeuren, en wat te doen als iets faalt. Het Supabase-project bestaat sinds
 14 augustus (S2 is daarmee vervallen) en het databasewachtwoord (S11) kwam

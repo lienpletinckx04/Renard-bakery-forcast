@@ -6,12 +6,29 @@
 >
 > Vier regels volstaan. Als het langer wordt, is het een rapport en hoort het in `docs/`.
 
-### 2026-09-18, Too Good To Go eruit, en de repo overgedragen aan Lien
+### 2026-09-18, TGTG eruit, Odoo op productie, en de nachtelijke sync draait voor het eerst echt
 
-**Gedaan:** codebase-inventaris voor Lien (stap 1 van haar overname): projectstructuur, datamodel, bronnen, dashboardschermen, forecastmodel en env vars in kaart gebracht en tegen de echte code geverifieerd (niet enkel de docs). Op haar uitdrukkelijke beslissing is Too Good To Go daarna volledig uit het platform gehaald: de historische omzet uit productie verwijderd (1.872 rijen, € 106.415,75, plus 83 rijen kanaalkost, via migratie `017_tgtg_verwijderd.sql`, met de kanaal-constraint aangepast naar `winkel`/`deliveroo`/`overig`), en de code — parser, extractiescripts, elke tgtg-tak in de berekenings- en contractlaag, het bevriezingsmechanisme `bakkerij/db/bevroren.py`, en de frontend — volledig verwijderd. Zie `beslissingen.md` voor de details en de afweging. Test- en linttoestand na afloop gecontroleerd: 766 backend-tests groen, 188/188 frontend-tests, geen nieuwe lintmeldingen.
-**Geblokkeerd door:** niets nieuws vandaag; de bestaande openstaande punten (Odoo-productiesleutel — Lien heeft er net één aangemaakt, Deliveroo-historiek verwerken, sluitingskalender t/m 2027) staan in `todo.md`/`open-punten.md`.
-**Beslissing:** TGTG volledig uit scope, inclusief historische data — zie `beslissingen.md`, entry van vandaag.
-**Morgen:** met Lien verder door stap 2 (Odoo naar productie) en stap 3 (Deliveroo-data controleren) van haar overnametraject.
+**Het platform staat sinds vanavond op productiedata, en dat is de eerste keer.** Tot vandaag vulde het zich uit de preprod-Odoo en stopten de cijfers op 7 augustus. Nu loopt de verkoop tot en met vandaag, komt ze uit `renard_bakery` op idealis.cloud, en staan Elsene en Ukkel voor het eerst apart op het scherm. Omzet laatste zeven open dagen: € 122.062 totaal, waarvan € 88.239 Elsene en € 39.202 Ukkel. Dat Elsene-cijfer komt neer op ~€ 12.600 per dag en dat is precies het daggemiddelde dat in augustus op de preprod gemeten is — de overstap heeft de cijfers dus niet verschoven, alleen aangevuld.
+
+**Onderweg zijn er vier dingen aan het licht gekomen die geen van alle in de documentatie stonden.**
+
+*Eén: de nachtelijke sync bestond niet.* `dagboek.md`, `todo.md` en `architectuur.md` beschrijven hem sinds 17 augustus als gebouwd, met cron, secrets en een faalmelding, en enkel wachtend op één groene handmatige run. De gitgeschiedenis van deze repo kent echter nooit een `.github/`-map. Er heeft dus nooit iets automatisch gedraaid; alles wat in de database stond, is er met de hand in gezet. De workflow is vandaag alsnog gebouwd (`.github/workflows/nachtelijke-sync.yml`), draait `scripts/nachtelijke_sync.py` ongewijzigd, en heeft vanavond vier keer gedraaid waarvan de laatste geslaagd.
+
+*Twee: de preprod en de productie noemen dezelfde kassa's anders.* Preprod zei `Kassa 1/2/3`, productie zegt `Ixelles Kassa 1/2/3`. Die naam zit in de primaire sleutel van `fact_verkoop`, dus de eerste productiesync overschreef de oude rijen niet maar zette ze ernaast: elke verkoop tussen 2 januari 2025 en 7 augustus 2026 stond er twee keer in en de omzet op het scherm zou verdubbeld zijn. Gemeten en opgeruimd via migratie `018_preprod_dubbels.sql`; de volledige meting (219.242 van de 219.503 rijen rij voor rij identiek, verschil € 70,70 op € 6,7 miljoen) staat in dat bestand.
+
+*Drie: er was geen `.gitignore` in de repowortel.* Harde regel 2 zegt dat `data/` gitignored is, en dat was feitelijk niet zo — het werkte tot nu toe waarschijnlijk door een globale gitignore op de machine van de vorige bouwer. Er is niets gelekt (alleen `README.md` en `.gitkeep` zijn ooit getrackt), maar de volgende die committeerde had klantdata kunnen meesturen. Gedicht.
+
+*Vier: `make odoo-audit` crashte op de productie-Odoo* (blok B en G) omdat `fields_get` zijn kwargs positioneel meekreeg. Een regel per plek, twee plekken.
+
+**Wat de overstap zelf moeilijk maakte, en wat daaraan veranderd is.** De koppeling strandde drie keer op `SUPABASE_DB_URL`. Die ene variabele vraagt om met de hand vier dingen tegelijk goed te doen: gebruiker mét projectref, poort 5432 en niet 6543, `?sslmode=require` erachter (de kopieerknop van Supabase laat die weg), en een wachtwoord dat URL-geëncodeerd hoort te zijn zodra er een `@` of `/` in staat. Dat is geen bedieningsfout maar een ontwerpfout: de foutmelding wijst dan naar de string in plaats van naar de stap die hem samenstelde. De workflow bouwt de string nu zelf uit `SUPABASE_DB_PASSWORD` — alleen het kale wachtwoord, precies zoals Supabase het na een reset toont. Daarnaast schreef de workflow zijn `.env` aanvankelijk via een shell-heredoc, wat een wachtwoord met een `$` of een backtick stilzwijgend zou verminken, en ontbrak `permissions: issues: write`, waardoor de faalmelding zélf sneuvelde op een 403 — precies het stille falen dat die melding moest voorkomen.
+
+**Geblokkeerd door:** `fact_bonnen` draagt nog de preprod-kassanamen en stopt op 7 augustus; die tabel valt bewust buiten de nachtelijke ketting en moet met `make extract-bonnen` herladen worden vóór het bonnenaantal en het gemiddelde bonbedrag weer kloppen. Zie `open-punten.md`. Verder onveranderd: Deliveroo-historiek verwerken, sluitingskalender t/m 2027.
+
+**Beslissing:** vier, alle vier in `beslissingen.md`: TGTG volledig uit scope inclusief historische data, de preprod-dubbels weggooien in plaats van hernoemen, de databaseverbinding uit één wachtwoord opbouwen, en de krimpwacht overrulen via een workflow-invoer zodat krimp een eenmalige menselijke handeling blijft.
+
+**Voor de overdracht:** Vorst is géén verkooppunt maar de productiebakkerij — er staat dan ook geen `pos.config` voor. Het platform kent dus twee winkels, niet drie. Dat stond nergens genoteerd en is vandaag door de opdrachtgever bevestigd.
+
+**Morgen:** `fact_bonnen` herladen met productienamen, en stap 3 van de overname (Deliveroo-historiek controleren op gaten en dubbels).
 **Uren:** in te vullen door Kwinten
 
 ---

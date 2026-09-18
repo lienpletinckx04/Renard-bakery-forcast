@@ -1238,3 +1238,32 @@ E4 (dat sinds vanavond de échte productieconstructie leent in plaats van hem na
 **Waarom:** expliciete beslissing van de opdrachtgever op 18 september 2026: TGTG draagt niets meer bij en wordt niet gebruikt. Uitdrukkelijk gevraagd inclusief de historische data, ook al is dat gemeten omzet — de opdrachtgever koos bewust voor "TGTG heeft nooit bestaan in het platform" boven "gedeactiveerd, data blijft liggen".
 **Alternatief:** enkel de UI verbergen en het kanaal deactiveren, met de data en code intact. Verworpen door de opdrachtgever: dat laat dode code en een ongebruikte databasewaarde achter, en de historische omzet zou dan nog ergens meetellen in een som die niemand meer wil zien.
 **Nazorg:** de test- en linttoestand vóór en na is gecontroleerd door de hoofdsessie (niet enkel door de uitvoerende agent): 766 backend-tests groen (was 801, min de tgtg-specifieke tests), 188/188 frontend-tests, geen nieuwe ruff-meldingen op de gewijzigde bestanden. Documentatie die de huidige staat beschrijft is bijgewerkt; dit dagboek en de eerdere beslissingen hierboven blijven ongewijzigd staan als geschiedenis.
+
+---
+
+### 2026-09-18, De preprod-kassa's gaan weg in plaats van hernoemd te worden
+
+**Wat:** de rijen onder `filiaal_id` = `Kassa 1`, `Kassa 2` en `Kassa 3` zijn uit `fact_verkoop` verwijderd (migratie `018_preprod_dubbels.sql`). Het zijn de drie registers van Elsene zoals de preprod-Odoo ze noemde; de productie-Odoo noemt dezelfde registers `Ixelles Kassa 1/2/3`.
+**Waarom:** `filiaal_id` zit in de primaire sleutel, dus de eerste productiesync vond geen conflict en zette de productierijen naast de preprodrijen. Elke verkoop tussen 2 januari 2025 en 7 augustus 2026 stond daarna twee keer in de tabel en de omzet op het scherm zou verdubbelen. Vóór het verwijderen gemeten, per kassanummer per dag per product: 219.503 oude rijen (€ 6.743.663,60) tegenover 219.498 nieuwe over dezelfde periode (€ 6.743.592,90), waarvan er 219.242 rij voor rij identiek zijn op datum, product, aantal én bedrag — 99,88 %.
+**Alternatief 1:** hernoemen naar de productienamen. Kan niet: de productierij met diezelfde sleutel bestaat al, dus dat botst op de primaire sleutel.
+**Alternatief 2:** de preprodrijen laten staan en op `filiaal_id` filteren in de berekeningslaag. Verworpen: dan draagt de feitentabel twee waarheden over dezelfde dag, en elke som die dat filter vergeet is stil fout. Een feitentabel hoort één waarheid te dragen.
+**Wat er niet verloren gaat:** de productiedata dekt dezelfde periode volledig en loopt bovendien door tot vandaag. Het verschil van € 70,70 zijn correcties die in productie ná de preprod-kopie zijn doorgevoerd; daar is de productierij per definitie de juiste.
+**Wat dit bewust niet aanraakt:** `fact_bonnen` draagt dezelfde oude namen, maar kent álléén preprodrijen. Leeggooien zou het bonnenaantal en het gemiddelde bonbedrag van het scherm halen zonder dat er iets voor in de plaats komt. Die tabel wordt gevuld door `make extract-bonnen`, dat bewust buiten de nachtelijke ketting staat; tot ze herladen is, zijn de bonnencijfers oud. Genoteerd in `open-punten.md`.
+
+---
+
+### 2026-09-18, De databaseverbinding wordt opgebouwd uit één wachtwoord
+
+**Wat:** de nachtelijke sync leest bij voorkeur `SUPABASE_DB_PASSWORD` — alleen het kale wachtwoord, precies zoals Supabase het na een reset toont — en stelt de verbindingsstring zelf samen. `SUPABASE_DB_URL` blijft werken en wint als hij gezet ís en deugt.
+**Waarom:** de eerste drie productieruns strandden alle drie op die ene variabele. Ze vraagt om met de hand vier dingen tegelijk goed te doen: gebruiker mét projectref (`postgres.<ref>`, niet `postgres`), poort 5432 en niet 6543 (transaction mode kent geen prepared statements), `?sslmode=require` erachter — en laat nu net de kopieerknop van het Supabase-dashboard die weglaten — en een wachtwoord dat URL-geëncodeerd hoort te zijn zodra er een `@` of `/` in staat. Elk van die vier is één keer fout te doen, en de foutmelding wijst dan naar de string in plaats van naar de stap die hem samenstelde. Dat is geen bedieningsfout maar een ontwerpfout: de moeilijkheid zat in de vorm van de invoer, niet in de kennis van wie hem invulde.
+**Alternatief:** betere documentatie bij de variabele. Verworpen: er stond al proza over in `stack.md` én een toetsende functie met tests in `bakkerij/db/verbinding.py`, en het ging alsnog drie keer mis. Wat je kunt wegnemen, documenteer je niet.
+**Wat bewust NIET verzonnen wordt:** een ontbrekende poort of een verkeerde host wordt niet bijgeschreven. Die twee dragen een keuze (session- versus transaction mode, IPv4 versus IPv6) en die keuze hoort zichtbaar te zijn. `normaliseer_dsn` vult alleen `sslmode` aan en knipt witruimte weg — de eis zelf blijft staan, `controleer_dsn` toetst onverminderd.
+**Een kapotte SUPABASE_DB_URL wordt opzijgezet, niet genegeerd:** staat er een URL die de toets niet haalt terwijl er wél een wachtwoord ligt, dan gaan de bezwaren het logboek in vóór de workflow op het wachtwoord terugvalt. Stil negeren zou een bewust gezette, stukke URL onzichtbaar maken.
+
+---
+
+### 2026-09-18, De krimpwacht wordt overruled via een workflow-invoer, niet via de cron
+
+**Wat:** `CONTRACT_KRIMP_OK` staat in de nachtelijke workflow achter een `workflow_dispatch`-invoer (`krimp_ok`, standaard uit). De cron kent geen inputs en draait dus altijd mét de wacht.
+**Waarom:** de eerste geslaagde productiesync strandde op de contractlader — veertien antwoorden werden "armer (bron weg: tgtg)". Dat is de wacht die precies doet waarvoor ze op 18 augustus gebouwd is; hier was de krimp alleen gewenst, want TGTG is er diezelfde dag uit gehaald. De beslissing van 18 augustus koos bewust een omgevingsvariabele boven een make-vlag, met als reden dat krimp een eenmalige, bewuste handeling van een mens hoort te zijn en niet iets dat kan inslijten. Een invoer bij het handmatig starten is exact dat: iemand vinkt hem aan voor één run.
+**Alternatief:** de variabele vast aanzetten in de workflow. Verworpen, en het is de verleidelijke fout: dan is de wacht er nog wel maar meldt ze nooit meer iets, en verdwijnt een echte verarming — een winkel die uit de indeling valt, een runner zonder config — even stil als vroeger.
