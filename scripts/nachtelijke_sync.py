@@ -14,6 +14,7 @@ De ketting hergebruikt de bestaande stappen en voegt er niets aan toe:
                       bakkerij/db/sync.py voor waarom dit een poortwachter is
                       en geen gedeeltelijk extract)
     2. extract        scripts/odoo_extract.py --vanaf 2025-01-01
+    2b. bonnen        scripts/odoo_bonnen.py --vanaf 2025-01-02 (zie hieronder)
     3. canoniek       scripts/canoniek_bouw.py
     4. laden          scripts/db_laad.py (COPY + insert-on-conflict, dus
                       idempotent: twee keer draaien is één keer draaien)
@@ -23,12 +24,25 @@ De ketting hergebruikt de bestaande stappen en voegt er niets aan toe:
                       leest -- zonder die vlag leest het de bestanden en is
                       deze stap onzichtbaar voor de UI
 
-Bewust NIET in de ketting: odoo_bonnen.py en odoo_laatste_uur.py. Die voeden
-fact_bonnen en fact_product_uren (kwaliteitswachters en censurering), niet de
-kerncijfers, en ze herlezen anderhalf miljoen bonregels -- dat hoort een
-bewuste keuze te zijn zodra de ketting echt nachtelijk draait, geen bijvangst.
-Tot die keuze verversen die twee tabellen alleen met de hand (make
-extract-bonnen / extract-uren); inspectiepunt 18 aug.
+ODOO_BONNEN STAAT SINDS 18 SEPTEMBER 2026 WEL IN DE KETTING, EN DAT IS HET
+INSPECTIEPUNT DAT HIER STOND. De oude tekst hield odoo_bonnen.py en
+odoo_laatste_uur.py er bewust buiten: ze voeden fact_bonnen en
+fact_product_uren, niet de kerncijfers, en dat hoorde een bewuste keuze te
+zijn zodra de ketting echt nachtelijk draaide. Die keuze is nu gemaakt, en
+enkel voor de bonnen. De reden is dat de uitzondering in de praktijk geen
+uitzondering bleek maar een stille uitval: niemand draait `make
+extract-bonnen` met de hand, dus `canoniek_bonnen.csv` bestaat op de runner
+nooit, dus bouwt het contract het bonritme als "niet ingeladen" en staat er op
+het overzichtsscherm permanent dat het aantal klanten niet gemeten is. Een
+optionele stap die nooit gedraaid wordt, is geen optie maar een gat.
+
+Wat het kost: odoo_bonnen leest `pos.order` met twee velden (datum en kassa),
+dus bonnen en geen bonregels. Dat is een orde van grootte minder dan het
+verkoopextract dat in dezelfde ketting al staat.
+
+odoo_laatste_uur.py blijft er wél buiten. Die leest wél op regelniveau, en hij
+voedt de censurering -- een wachter, geen cijfer op het scherm. Dezelfde
+afweging, andere uitkomst.
 
 Elke run schrijft één rij in etl_run (bron 'nachtelijke-sync'): gestart,
 geslaagd of gefaald, met de reden. Ook een gevallen poortwachter (Odoo
@@ -58,6 +72,12 @@ PY = sys.executable
 #: draait; de sync voegt alleen de volgorde en de logging toe.
 STAPPEN = [
     ("extract", [PY, "scripts/odoo_extract.py", "--vanaf", "2025-01-01"]),
+    # Vóór canoniek: canoniek_bouw pikt `*_odoo_bonnen_*.csv` op als het er
+    # ligt, en bouwt er `canoniek_bonnen.csv` van. Ligt het er niet, dan valt
+    # het bonritme stil terug op "niet ingeladen" -- precies de uitval die
+    # deze stap komt dichten. 2 januari en niet 1 januari: nieuwjaarsdag is
+    # gesloten en telt geen bonnen (zie odoo_bonnen.py).
+    ("bonnen", [PY, "scripts/odoo_bonnen.py", "--vanaf", "2025-01-02"]),
     ("canoniek", [PY, "scripts/canoniek_bouw.py"]),
     ("laden", [PY, "scripts/db_laad.py"]),
     ("contract", [PY, "scripts/contract_bouw.py"]),

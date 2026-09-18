@@ -1,0 +1,42 @@
+-- 019: de preprod-kassa's uit fact_bonnen. Het sluitstuk van 018.
+--
+-- WAAROM DIT NIET IN 018 ZAT
+-- Migratie 018 haalde dezelfde drie namen (`Kassa 1/2/3`) uit fact_verkoop en
+-- liet fact_bonnen BEWUST staan, met de reden erbij: die tabel kent alléén
+-- preprod-rijen, en leeggooien zou het bonnenaantal en het gemiddelde
+-- bonbedrag van het scherm halen zonder dat er iets voor in de plaats komt.
+-- Dat klopte zolang `odoo_bonnen.py` buiten de nachtelijke ketting stond en er
+-- dus niets kwam. Sinds 18 september 2026 staat die stap er wél in (zie
+-- scripts/nachtelijke_sync.py), en daarmee vervalt de reden om te wachten.
+--
+-- DE VOLGORDE IS DE HELE VEILIGHEID
+-- Binnen één sync draaien de migraties als stap 0 en laadt db_laad.py als stap
+-- 4. Deze delete en de herlading zitten dus in dezelfde run: de tabel is leeg
+-- tussen twee stappen van één nacht, niet tussen twee nachten. Draai deze
+-- migratie daarom niet los zonder daarna te laden -- niet omdat er dan iets
+-- stukgaat, maar omdat het scherm dan tot de volgende sync zegt dat het aantal
+-- klanten niet gemeten is, en dat is precies de melding die dit komt oplossen.
+--
+-- WAT ER WEGGAAT, GEMETEN OP 18 SEPTEMBER 2026
+--   Kassa 1   534 rijen   2025-01-02 t/m 2026-08-07   219.815 bonnen
+--   Kassa 2   528 rijen   2025-01-02 t/m 2026-07-31   197.408 bonnen
+--   Kassa 3   513 rijen   2025-01-16 t/m 2026-07-31   261.075 bonnen
+-- Samen 1.575 rijen en 678.298 bonnen, allemaal Elsene onder de preprodnaam.
+--
+-- WAAROM WEGGOOIEN EN NIET HERNOEMEN
+-- Dezelfde reden als in 018: `filiaal_id` zit in de primaire sleutel
+-- (datum, filiaal_id), dus hernoemen botst zodra de productierij voor diezelfde
+-- dag bestaat. En anders dan bij fact_verkoop is hier geen twijfel over wat de
+-- juiste rij is: de productie-extractie telt dezelfde bonnen uit hetzelfde
+-- kassasysteem, alleen onder de naam die de bakkerij vandaag gebruikt.
+--
+-- WAT HIER NIET MEE OPGELOST IS
+-- Fort Jaco (Ukkel) opende eind augustus 2026 en heeft in deze tabel nog nooit
+-- een rij gehad, ook niet onder een andere naam. Die komen er pas bij met de
+-- eerste sync die deze stap draait; tot dan is het aantal klanten voor die
+-- winkel niet "oud" maar simpelweg afwezig.
+--
+-- Idempotent: een tweede keer draaien verwijdert nul rijen.
+
+delete from public.fact_bonnen
+ where filiaal_id in ('Kassa 1', 'Kassa 2', 'Kassa 3');
