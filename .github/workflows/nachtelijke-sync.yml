@@ -57,23 +57,83 @@ jobs:
           ODOO_USER: ${{ secrets.ODOO_USER }}
           ODOO_API_KEY: ${{ secrets.ODOO_API_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          # Geen secrets: de projectverwijzing staat al publiek in
+          # NEXT_PUBLIC_SUPABASE_URL en de poolerhost volgt uit de regio. Ze
+          # staan hier zodat de verbindingsstring uit één wachtwoord op te
+          # bouwen is -- zie de toelichting hieronder.
+          DB_GEBRUIKER: postgres.ngerseztiilxwkahctgu
+          DB_HOST: aws-0-eu-north-1.pooler.supabase.com
         run: |
           python3 - <<'PY'
           import os
           import pathlib
+          import urllib.parse
 
-          NAMEN = ["ODOO_URL", "ODOO_DB", "ODOO_USER", "ODOO_API_KEY", "SUPABASE_DB_URL"]
-          regels = [f"{naam}={os.environ.get(naam, '').strip()}" for naam in NAMEN]
-          pathlib.Path(".env").write_text("\n".join(regels) + "\n", encoding="utf-8")
+          def schoon(naam: str) -> str:
+              return os.environ.get(naam, "").strip()
+
+          # TWEE WEGEN NAAR DEZELFDE VERBINDINGSSTRING, en de tweede bestaat
+          # omdat de eerste in de praktijk misging. SUPABASE_DB_URL vergt dat
+          # iemand met de hand een URI samenstelt: gebruiker met projectref,
+          # poort 5432 en niet 6543, `?sslmode=require` erachter (de knop
+          # "Copy" in Supabase laat die weg), en een wachtwoord dat
+          # URL-geëncodeerd hoort te zijn zodra er een @ of / in staat. Elk van
+          # die vier is één keer fout te doen, en de foutmelding wijst dan naar
+          # de string en niet naar de stap die hem maakte.
+          #
+          # SUPABASE_DB_PASSWORD draagt daarom alleen het wachtwoord, precies
+          # zoals Supabase het na een reset toont. De rest staat hierboven en
+          # verandert niet. Staat SUPABASE_DB_URL gevuld, dan wint die: wie
+          # bewust een andere host of poort kiest, wordt niet overruled.
+          import sys
+
+          sys.path.insert(0, ".")
+          from bakkerij.db.verbinding import controleer_dsn, normaliseer_dsn
+
+          def uit_wachtwoord() -> str:
+              wachtwoord = urllib.parse.quote(schoon("SUPABASE_DB_PASSWORD"), safe="")
+              return (
+                  f"postgresql://{schoon('DB_GEBRUIKER')}:{wachtwoord}"
+                  f"@{schoon('DB_HOST')}:5432/postgres?sslmode=require"
+              )
+
+          dsn = normaliseer_dsn(schoon("SUPABASE_DB_URL"))
+          bron = "SUPABASE_DB_URL"
+
+          # Een SUPABASE_DB_URL die niet deugt wordt opzijgezet als er een
+          # wachtwoord ligt waarmee het wél kan. Niet stilletjes: de bezwaren
+          # gaan mee het logboek in, zodat een bewust gezette URL die stuk is
+          # even zichtbaar blijft als een URL die er nooit was.
+          if dsn and controleer_dsn(dsn) and schoon("SUPABASE_DB_PASSWORD"):
+              print("SUPABASE_DB_URL is gezet maar deugt niet:")
+              for bezwaar in controleer_dsn(dsn):
+                  print(f"  - {bezwaar}")
+              print("  -> genegeerd; de string wordt uit SUPABASE_DB_PASSWORD opgebouwd.")
+              dsn = ""
+
+          if not dsn and schoon("SUPABASE_DB_PASSWORD"):
+              dsn = uit_wachtwoord()
+              bron = "SUPABASE_DB_PASSWORD (string zelf samengesteld)"
+
+          waarden = {naam: schoon(naam) for naam in
+                     ["ODOO_URL", "ODOO_DB", "ODOO_USER", "ODOO_API_KEY"]}
+          waarden["SUPABASE_DB_URL"] = dsn
+          pathlib.Path(".env").write_text(
+              "\n".join(f"{naam}={waarde}" for naam, waarde in waarden.items()) + "\n",
+              encoding="utf-8",
+          )
 
           # Alleen of ze gevuld zijn, nooit wát erin staat.
-          leeg = [naam for naam in NAMEN if not os.environ.get(naam, "").strip()]
+          leeg = [naam for naam, waarde in waarden.items() if not waarde]
           if leeg:
               raise SystemExit(
                   "Deze secrets zijn leeg of ontbreken: " + ", ".join(leeg) + ".\n"
-                  "Zet ze onder Settings -> Secrets and variables -> Actions."
+                  "Zet ze onder Settings -> Secrets and variables -> Actions.\n"
+                  "Voor de database volstaat SUPABASE_DB_PASSWORD (alleen het "
+                  "wachtwoord); SUPABASE_DB_URL hoeft dan niet te bestaan."
               )
-          print(f"Alle {len(NAMEN)} secrets zijn aanwezig.")
+          print(f"Alle {len(waarden)} waarden zijn aanwezig. Database via: {bron}.")
           PY
 
       - name: Verbindingsstring toetsen vóór het zware werk
