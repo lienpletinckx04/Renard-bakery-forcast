@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-/* De zes tokens uit de logogids. Geen enkele kleur daarbuiten. */
+/* De zes tokens uit de logogids, plus sinds 18 september 2026 drie
+ * signaalkleuren. Zie de noot onder dit blok: die drie zijn een bewuste
+ * uitzondering op "geen enkele kleur daarbuiten", en ze staan los van het merk.
+ */
 @theme {
   --color-*: initial;
   --color-beige: #f4ede6;
@@ -9,6 +12,34 @@
   --color-warmgrijs: #c9c0af;
   --color-zwart: #000000;
   --color-wit: #ffffff;
+
+  /*
+   * DE DRIE SIGNAALKLEUREN, EN WAAROM ZE NIET UIT DE LOGOGIDS KOMEN.
+   *
+   * De opdrachtgever vroeg om te kunnen zien wat goed en niet goed gaat zonder
+   * te lezen. Dat botst op de regel van 12 augustus 2026 ("cijfers worden nooit
+   * gekleurd"), en die regel had een scherpe reden: het merk ís rood, en in een
+   * financiële tool leest rood als verlies. Merkrood voor "slecht" zou van
+   * bordeaux op élk scherm slecht nieuws maken.
+   *
+   * Deze drie lossen dat op door naast het merk te staan in plaats van erin:
+   * bordeaux blijft identiteit (koppen, staven, lijnen, actieve staat) en
+   * draagt nooit een oordeel; de signaalkleuren dragen alléén een oordeel en
+   * verschijnen nergens als decoratie. `signaal-actie` is daarom bewust een
+   * warmer, feller rood dan bordeaux: staan ze ooit op één scherm, dan moeten
+   * het twee inkten zijn en niet één.
+   *
+   * KLEUR KOMT ER ALTIJD BÍJ, NOOIT IN DE PLAATS. Het statuswoord, de volgorde,
+   * de kopmaat en de lijndikte blijven het verschil dragen (zie Briefing.tsx).
+   * Wie kleur niet ziet -- kleurenblind, zwart-witafdruk -- mist daardoor niets.
+   * Dat was de tweede helft van de oude motivering, en die blijft staan.
+   *
+   * De hexwaarden zijn een startpunt en geen logogidsafspraak: ze zijn te
+   * stemmen zonder dat er verder iets aan de code verandert.
+   */
+  --color-signaal-goed: #1f7a4d;
+  --color-signaal-letop: #b26b00;
+  --color-signaal-actie: #d8382a;
 
   --font-sans: var(--font-inter-tight), sans-serif;
 

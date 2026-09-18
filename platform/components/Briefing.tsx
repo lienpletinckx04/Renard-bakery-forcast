@@ -10,10 +10,15 @@ import type { Briefing as BriefingInhoud, BriefingPunt } from "@/lib/contract";
  * drempel getoetst en geen cijfer gerekend (harde regel 4). Wat de component
  * wél doet, is de punten op hun statussleutel groeperen — zie lib/briefing.ts.
  *
- * DE STATUS ZONDER KLEUR. De huisstijl kent geen betekeniskleur: er komt geen
- * rood bij "actie" en geen groen bij "goed", net zomin als een daling een rood
- * cijfer krijgt. Het onderscheid ligt in vier dingen die alle vier zonder
- * kleurwaarneming werken:
+ * DE STATUS DRAAGT SINDS 18 SEPTEMBER 2026 OOK KLEUR, MAAR NOOIT ALLEEN KLEUR.
+ * Tot die dag gold hier "geen betekeniskleur"; de opdrachtgever heeft die
+ * regel herroepen omdat het scherm zonder kleur te traag leesbaar was. Wat
+ * niet mee herroepen is, is de reden erachter: kleur komt erbíj, nooit in de
+ * plaats. De vier dragers hieronder blijven dus alle vier staan, en ze werken
+ * alle vier zonder kleurwaarneming -- op een zwart-witafdruk en voor wie
+ * kleurenblind is, verandert er niets aan wat dit blok zegt. Gekleurd zijn
+ * alleen de verticale lijn en het statuswoord; het cijfer rechts blijft zwart,
+ * want dat was een aparte regel met een eigen reden (zie globals.css).
  *
  *  1. HET WOORD. `statuswoord` staat voluit boven de kop, in het
  *     kapitaalregister van het logo. Het staat binnen de <h3>, zodat wie op
@@ -43,10 +48,23 @@ import type { Briefing as BriefingInhoud, BriefingPunt } from "@/lib/contract";
  * wel doet.
  */
 
+/**
+ * De verticale lijn links van het punt: dikte én kleur. De dikte is de oude
+ * ladder en blijft de drager voor wie geen kleur ziet; de kleur is de snelle
+ * herkenning voor wie wel kijkt. `goed` krijgt 1px en niet 2px: wat goed gaat
+ * hoort niet even hard te roepen als wat actie vraagt, ook niet in het groen.
+ */
 const LIJN: Record<BriefingPunt["status"], string> = {
-  actie: "border-l-2 border-zwart pl-5",
-  let_op: "border-l border-warmgrijs pl-4",
-  goed: "border-l border-beige pl-4",
+  actie: "border-l-2 border-signaal-actie pl-5",
+  let_op: "border-l border-signaal-letop pl-4",
+  goed: "border-l border-signaal-goed pl-4",
+};
+
+/** Het statuswoord in dezelfde signaalkleur als de lijn ernaast. */
+const WOORDKLEUR: Record<BriefingPunt["status"], string> = {
+  actie: "text-signaal-actie",
+  let_op: "text-signaal-letop",
+  goed: "text-signaal-goed",
 };
 
 const GEWICHT: Record<BriefingPunt["status"], string> = {
@@ -155,7 +173,7 @@ export default function Briefing({
                 <span
                   className={`block text-[0.6875rem] uppercase tracking-[0.14em] ${
                     GEWICHT[punt.status] ?? GEWICHT[ONBEKEND]
-                  }`}
+                  } ${WOORDKLEUR[punt.status] ?? WOORDKLEUR[ONBEKEND]}`}
                 >
                   {punt.statuswoord}
                 </span>
