@@ -1192,12 +1192,12 @@ def test_marge_toont_een_genegeerd_bestand_met_reden():
 
 # --- de periodekubus -----------------------------------------------------------
 
-def test_periodes_dragen_vier_voorgebakken_vensters():
+def test_periodes_dragen_vijf_voorgebakken_vensters():
     _, totalen, tot = _twee_jaar()
     a = _overzicht(totalen, tot, bron=["odoo"], bijgewerkt_op=BIJGEWERKT,
                    gemeten_tot=tot, prognose_methode=METHODE)
     vensters = {v["sleutel"]: v for v in a["data"]["periodes"]}
-    assert set(vensters) == {"d30", "w13", "m12", "jaar"}
+    assert set(vensters) == {"d7", "d30", "w13", "m12", "jaar"}
     for v in vensters.values():
         assert v["label"]
         assert v["soort"] in ("lijn", "staaf")
@@ -1210,6 +1210,46 @@ def test_periodes_dragen_vier_voorgebakken_vensters():
     for v in vensters.values():
         if v["grafiek"] is not None:
             assert v["grafiek"]["y_as"]["ticks"]
+
+
+def test_het_korte_venster_telt_open_dagen_en_niet_kalenderdagen():
+    """Zeven open dagen zijn geen zeven kalenderdagen.
+
+    De fixture draait zes dagen per week; het venster moet dus zeven gemeten
+    open dagen beslaan en niet de zeven kalenderdagen vóór de peildatum. Zonder
+    dit onderscheid zakt het totaal mee met elke sluitingsdag in het venster,
+    en dan meet de week de kalender in plaats van de zaak.
+    """
+    _, totalen, tot = _twee_jaar()
+    a = _overzicht(totalen, tot, bron=["odoo"], bijgewerkt_op=BIJGEWERKT,
+                   gemeten_tot=tot, prognose_methode=METHODE)
+    d7 = next(v for v in a["data"]["periodes"] if v["sleutel"] == "d7")
+    assert d7["grafiek"]["reeksen"][0]["punten"] is not None
+    assert len(d7["grafiek"]["reeksen"][0]["punten"]) == 7
+    # Het knoplabel draagt het gevraagde aantal, de toelichting het gevondene.
+    assert "7" in d7["label"]
+    assert "7 gemeten open winkeldagen" in d7["toelichting"]
+
+
+def test_precies_een_venster_opent_de_kiezer():
+    """De kiezer mag niet raden welk venster opent, en niet twee kandidaten
+    krijgen. Dertig dagen blijft het openingsbeeld: een week is te kort om een
+    dashboard mee te openen, ook nu ze zelf kunnen wisselen."""
+    _, totalen, tot = _twee_jaar()
+    a = _overzicht(totalen, tot, bron=["odoo"], bijgewerkt_op=BIJGEWERKT,
+                   gemeten_tot=tot, prognose_methode=METHODE)
+    standaard = [v for v in a["data"]["periodes"] if v.get("standaard")]
+    assert [v["sleutel"] for v in standaard] == ["d30"]
+
+
+def test_periodes_lopen_van_kort_naar_lang():
+    """De knoprij is een schaal; een venster dat ertussen springt leest als een
+    fout in het scherm."""
+    _, totalen, tot = _twee_jaar()
+    a = _overzicht(totalen, tot, bron=["odoo"], bijgewerkt_op=BIJGEWERKT,
+                   gemeten_tot=tot, prognose_methode=METHODE)
+    sleutels = [v["sleutel"] for v in a["data"]["periodes"]]
+    assert sleutels == ["d7", "d30", "w13", "m12", "jaar"]
 
 
 def test_periodes_vergelijken_op_gemiddelde_per_open_dag():

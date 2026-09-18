@@ -285,12 +285,19 @@ export type ConcentratieData = {
  * elke as en elke vergelijking is hier al gerekend (harde regel 4).
  */
 export type PeriodeVenster = {
-  sleutel: string; // "d30" | "w13" | "m12" | "jaar" — nieuwe mogen erbij komen
+  sleutel: string; // "d7" | "d30" | "w13" | "m12" | "jaar" — nieuwe mogen erbij
   label: string; // knoptekst, kant-en-klaar
   soort: "lijn" | "staaf";
   grafiek: Lijndata | Staafdata | null;
   context: ContextItem[];
   toelichting: string;
+  /**
+   * Het venster dat de kiezer opent. Staat hier en niet in de volgorde van de
+   * lijst: die loopt van kort naar lang, terwijl het openingsvenster 30 dagen
+   * blijft. Ontbreekt de vlag overal — een contract van vóór dit veld — dan
+   * valt de kiezer terug op het eerste venster, het gedrag van voorheen.
+   */
+  standaard?: boolean;
 };
 
 /* ---- per scherm ------------------------------------------------------- */

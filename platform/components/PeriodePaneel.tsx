@@ -50,7 +50,11 @@ export default function PeriodePaneel({
    */
   redenen?: Onbeschikbaar[];
 }) {
-  const [actief, zetActief] = useState(vensters[0]?.sleutel ?? "");
+  // Het contract wijst het openingsvenster aan; draagt geen enkel venster de
+  // vlag, dan het eerste — het gedrag van vóór dit veld. De knopvolgorde loopt
+  // van kort naar lang en zegt dus niets over wat opent.
+  const opening = vensters.find((v) => v.standaard) ?? vensters[0];
+  const [actief, zetActief] = useState(opening?.sleutel ?? "");
   // Voor het tab/tabpanel-koppel hieronder: de kiezer kan vaker dan één keer
   // op een bladzijde staan, dus de ids moeten per exemplaar uniek zijn.
   const basisId = useId();

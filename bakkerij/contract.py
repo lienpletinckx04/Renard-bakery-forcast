@@ -854,6 +854,10 @@ def _prijs_volume(
 
 PERIODE_WEKEN = 13
 PERIODE_MAANDEN = 12
+#: Het korte venster naast de 30 dagen. Zeven, omdat de opdrachtgever zijn
+#: eigen managementrapporten per week opmaakt en die twee naast elkaar moeten
+#: kunnen liggen; het telt gemeten open dagen, zie `_dagenvenster`.
+PERIODE_KORT_DAGEN = 7
 
 
 def _vergelijk_blokken(huidig, vorig, omschrijving: str) -> dict | None:
@@ -900,45 +904,83 @@ def _blok_context(blok, beste: dict | None, vergelijking: dict | None) -> list[d
     return context
 
 
-def _periodes(
-    dagtotalen: pd.DataFrame, kalender: pd.DataFrame, tot: pd.Timestamp,
-    onbeschikbaar: list[dict],
-) -> list[dict]:
-    vensters: list[dict] = []
+def _dagenvenster(
+    dagtotalen: pd.DataFrame, tot: pd.Timestamp, dagen: int, sleutel: str,
+    *, standaard: bool = False,
+) -> dict:
+    """Eén venster van de vorm "de laatste N gemeten open dagen", als lijn.
 
-    # 30 dagen: dezelfde reeks als het klassieke omzetverloop.
-    verloop = bk.omzetverloop(dagtotalen, tot, dagen=30)
+    `dagen` telt gemeten open dagen en géén kalenderdagen (zie
+    `berekening._aangrenzende_vensters`). Zeven open dagen zijn bij een zaak
+    die zes dagen per week draait ruim een kalenderweek, en na een sluiting
+    nog meer. Daarom draagt het knoplabel het gevráágde aantal en de
+    toelichting het gevónden aantal: die twee lopen uiteen zodra de historiek
+    korter is dan het venster, en dan is het gevonden aantal het eerlijke.
+
+    `standaard` markeert het venster dat de kiezer opent. Dat staat hier en
+    niet in de volgorde van de lijst, want de lijst loopt van kort naar lang
+    (leesbaar) terwijl het openingsvenster 30 dagen blijft — een week is te
+    kort om een dashboard mee te openen, en een stille wissel van dat
+    openingsbeeld is precies wat niemand vraagt.
+    """
+    verloop = bk.omzetverloop(dagtotalen, tot, dagen=dagen)
     punten = [(_dag_label(pd.Timestamp(r.datum)), float(r.omzet))
               for r in verloop.itertuples()]
-    ctx = bk.periodecontext(dagtotalen, tot, dagen=30)
-    d30_context = [
-        {"label": t("Totaal, {n} open dagen", "Total, {n} jours d'ouverture").format(n=ctx.dagen), "waarde": _s(ctx.totaal),
-         "soort": "euro", "richting": None},
-        {"label": t("Gemiddelde per open dag", "Moyenne par jour d'ouverture"), "waarde": _s(ctx.gemiddelde),
-         "soort": "euro", "richting": None},
+    ctx = bk.periodecontext(dagtotalen, tot, dagen=dagen)
+
+    context = [
+        {"label": t("Totaal, {n} open dagen", "Total, {n} jours d'ouverture").format(n=ctx.dagen),
+         "waarde": _s(ctx.totaal), "soort": "euro", "richting": None},
+        {"label": t("Gemiddelde per open dag", "Moyenne par jour d'ouverture"),
+         "waarde": _s(ctx.gemiddelde), "soort": "euro", "richting": None},
         {"label": t("Beste dag, {d}", "Meilleur jour, {d}").format(d=_dag_label(ctx.beste_datum)),
          "waarde": _s(ctx.beste_omzet), "soort": "euro", "richting": None},
     ]
+    # Alleen wanneer het vorige venster evenveel open dagen telt; anders is de
+    # vergelijking scheef en laat `periodecontext` het percentage weg.
     if ctx.verschil_pct is not None:
-        d30_context.append({
+        context.append({
             "label": t("T.o.v. de {n} open dagen ervoor", "Par rapport aux {n} jours d'ouverture précédents").format(n=ctx.vorig_dagen),
             "waarde": _pct_machine(float(ctx.verschil_pct)), "soort": "verschil",
             "richting": ctx.richting,
         })
-    vensters.append({
-        "sleutel": "d30", "label": t("30 dagen", "30 jours"), "soort": "lijn",
+
+    venster = {
+        "sleutel": sleutel,
+        "label": t("{n} dagen", "{n} jours").format(n=dagen),
+        "soort": "lijn",
         "grafiek": _lijn(punten,
                          t("Dagomzet", "Chiffre d'affaires journalier"),
                          "bordeaux",
                          max((y for _, y in punten), default=0.0)),
-        "context": d30_context,
+        "context": context,
         "toelichting": t(
             f"De laatste {ctx.dagen} gemeten open winkeldagen t/m "
             f"{_dag_label(tot)}.",
             f"Les {ctx.dagen} derniers jours d'ouverture mesurés jusqu'au "
             f"{_dag_label(tot)}.",
         ),
-    })
+    }
+    if standaard:
+        venster["standaard"] = True
+    return venster
+
+
+def _periodes(
+    dagtotalen: pd.DataFrame, kalender: pd.DataFrame, tot: pd.Timestamp,
+    onbeschikbaar: list[dict],
+) -> list[dict]:
+    vensters: list[dict] = []
+
+    # Van kort naar lang. Het korte venster staat vooraan omdat de
+    # opdrachtgever in weken denkt; 30 dagen blijft het venster dat opent.
+    vensters.append(
+        _dagenvenster(dagtotalen, tot, PERIODE_KORT_DAGEN, "d7")
+    )
+    # 30 dagen: dezelfde reeks als het klassieke omzetverloop.
+    vensters.append(
+        _dagenvenster(dagtotalen, tot, 30, "d30", standaard=True)
+    )
 
     # 13 volledige weken: staaf per week, gat blijft zichtbaar als ontbrekende
     # staaf met de reden in onbeschikbaar.
