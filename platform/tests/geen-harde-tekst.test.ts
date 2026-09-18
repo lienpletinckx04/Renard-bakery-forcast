@@ -84,7 +84,7 @@ const OVERGESLAGEN = new Set([
  * het Frans hetzelfde blijft; anders hoort het in het woordenboek.
  */
 const TOEGESTAAN = new Set([
-  "data/config/winkels.json", // een bestandspad, geen zin
+  "config/winkels.json", // een bestandspad, geen zin
   "Too Good To Go", // merknaam
   "Deliveroo", // merknaam
   "Odoo", // merknaam

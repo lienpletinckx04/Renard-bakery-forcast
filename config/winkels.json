@@ -1,0 +1,12 @@
+{
+  "winkels": [
+    {
+      "naam": "Elsene",
+      "filialen": ["Ixelles Kassa 1", "Ixelles Kassa 2", "Ixelles Kassa 3"]
+    },
+    {
+      "naam": "Ukkel",
+      "filialen": ["Uccle Kassa 1", "Uccle Kassa 2", "Uccle Kassa 3"]
+    }
+  ]
+}

@@ -2,12 +2,13 @@
 
 Het canonieke model draagt `filiaal_id` sinds dag één, maar het platform toont
 tot nu toe één geheel. Deze module maakt de indeling een instelling van de
-klant in plaats van een aanname van ons: `data/config/winkels.json` (buiten
-git) zegt welke filialen bij welke winkel horen, en de contractbouw schrijft
-per winkel een eigen contractmap naast het totaal. Zonder bestand verandert er
-niets — één geheel, zoals vandaag. Dat is bewust: vraag 18 (registers of
-vestigingen) ligt nog bij de opdrachtgever, en zodra er een tweede vestiging
-komt, is dit één configregel in plaats van een verbouwing.
+klant in plaats van een aanname van ons: `config/winkels.json` (in git, want
+winkel- en kassanamen zijn geen klantdata) zegt welke filialen bij welke
+winkel horen, en de contractbouw schrijft per winkel een eigen contractmap
+naast het totaal. Zonder bestand verandert er niets — één geheel, zoals
+vandaag. Vraag 18 (registers of vestigingen) is intussen beantwoord: Ixelles'
+drie kassa's zijn registers van dezelfde winkel, Ukkel is een echte tweede
+vestiging (18 sep 2026, zie `beslissingen.md`) — vandaar dit bestand.
 
 De prognose blijft per winkel overeind: elke winkel krijgt zijn eigen reeks,
 zijn eigen backtest en zijn eigen band. Een winkel met te weinig historiek

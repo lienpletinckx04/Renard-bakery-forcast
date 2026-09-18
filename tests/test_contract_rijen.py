@@ -143,7 +143,7 @@ def test_een_erbij_gekomen_winkel_is_geen_krimp():
 
 
 def test_een_verdwenen_winkel_wordt_gemeld():
-    """Het runner-scenario: zonder data/config/winkels.json bouwt de sync geen
+    """Het runner-scenario: zonder config/winkels.json bouwt de sync geen
     winkelantwoorden, en die zouden anders stilzwijgend het volledige contract
     vervangen -- een groene run met minder cijfers op het scherm."""
     bestaand = {("overzicht", "nl", ""), ("overzicht", "nl", "centrum")}

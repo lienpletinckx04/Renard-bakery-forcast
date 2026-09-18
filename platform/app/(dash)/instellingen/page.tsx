@@ -295,7 +295,7 @@ export default async function InstellingenPagina() {
                 {t("inst.nietToegewezen", {
                   filialen: winkels.niet_toegewezen.join(", "),
                 })}{" "}
-                <code className="text-xs">data/config/winkels.json</code>.
+                <code className="text-xs">config/winkels.json</code>.
               </p>
             ) : null}
             {/* Een winkel uit de config zonder schermen verscheen tot 17 aug

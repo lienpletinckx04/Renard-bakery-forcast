@@ -423,8 +423,8 @@ const WOORDEN = {
     " Le fichier des magasins est ignoré : {melding}",
   ],
   "inst.winkelsLater": [
-    " Zodra er meer vestigingen zijn, wijst de beheerder in data/config/winkels.json filialen aan winkels toe; elke winkel krijgt dan eigen schermen en een eigen gebackteste prognose, en het totaal blijft bestaan.",
-    " Dès qu'il y aura plusieurs établissements, l'administrateur attribuera les points de vente à des magasins dans data/config/winkels.json ; chaque magasin aura alors ses propres écrans et sa propre prévision backtestée, et le total subsistera.",
+    " Zodra er meer vestigingen zijn, wijst de beheerder in config/winkels.json filialen aan winkels toe; elke winkel krijgt dan eigen schermen en een eigen gebackteste prognose, en het totaal blijft bestaan.",
+    " Dès qu'il y aura plusieurs établissements, l'administrateur attribuera les points de vente à des magasins dans config/winkels.json ; chaque magasin aura alors ses propres écrans et sa propre prévision backtestée, et le total subsistera.",
   ],
   "inst.gebruikersLater": [
     // Deze tekst zei tot 18 aug 2026 "komt er samen met de database (S2)".

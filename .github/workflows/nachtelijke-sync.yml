@@ -1,0 +1,68 @@
+name: Nachtelijke sync
+
+# Odoo -> canoniek -> Supabase, elke nacht. Zie scripts/nachtelijke_sync.py
+# voor de ketting zelf (migraties, poortwachter, extract, canoniek, laden,
+# contract, contract laden) -- deze workflow doet niets anders dan die ketting
+# de juiste omgeving geven en 's nachts starten.
+#
+# Vereiste repository secrets (Settings -> Secrets and variables -> Actions):
+#   ODOO_URL, ODOO_DB, ODOO_USER, ODOO_API_KEY, SUPABASE_DB_URL
+#
+# 01:30 UTC = 02:30 of 03:30 Brusselse tijd, afhankelijk van zomertijd. Dat is
+# bewust ná middernacht Brusselse tijd in alle gevallen: de dag die net
+# gesloten is, staat dan al volledig in Odoo.
+
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Python-omgeving opzetten
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: .env schrijven uit de repository secrets
+        # bakkerij/sources/odoo_client.py vergt een echt bestand op schijf
+        # (een ontbrekende .env is daar bewust fataal, zie de moduledocstring)
+        # -- omgevingsvariabelen alleen volstaan niet. Dit bestand leeft nooit
+        # langer dan de job: de runner wordt na afloop weggegooid.
+        run: |
+          cat > .env <<EOF
+          ODOO_URL=${{ secrets.ODOO_URL }}
+          ODOO_DB=${{ secrets.ODOO_DB }}
+          ODOO_USER=${{ secrets.ODOO_USER }}
+          ODOO_API_KEY=${{ secrets.ODOO_API_KEY }}
+          SUPABASE_DB_URL=${{ secrets.SUPABASE_DB_URL }}
+          EOF
+
+      - name: Nachtelijke sync
+        run: make sync
+
+      - name: Faalmelding als issue
+        if: failure()
+        uses: actions/github-script@v9
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Nachtelijke sync gefaald - ${new Date().toISOString().slice(0, 10)}`,
+              body: `De nachtelijke sync (run ${context.runId}) is gefaald. ` +
+                    `Logs: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n` +
+                    `De databank draagt hierdoor mogelijk niet de jongste dag. ` +
+                    `\`etl_run\` (bron nachtelijke-sync) heeft de reden.`,
+              labels: ["nachtelijke-sync", "storing"],
+            })

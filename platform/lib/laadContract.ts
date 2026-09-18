@@ -8,7 +8,7 @@
  *      blijven tonen. Van schijf lezen maakt het scherm zo vers als het
  *      contract, en de contractbouw schrijft atomair (tmp + rename), dus een
  *      halve JSON bestaat niet.
- *   2. De winkelkiezer: met een winkelindeling (data/config/winkels.json)
+ *   2. De winkelkiezer: met een winkelindeling (config/winkels.json)
  *      staat er naast het totaal een contractmap per winkel. De keuze leeft in
  *      een cookie, maar de cookie wordt nooit als pad vertrouwd — alleen een
  *      slug die de contractbouw zelf in winkels.json heeft gezet, wordt een

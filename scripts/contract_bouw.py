@@ -82,7 +82,10 @@ MARGES_PAD = REPO / "data" / "config" / "marges.json"
 # De winkelindeling (optioneel): welke filialen samen één verkooppunt vormen.
 # Zonder bestand is er één geheel, zoals vandaag; mét bestand komt er naast het
 # totaal een contractmap per winkel, elk met een eigen gebackteste prognose.
-WINKELS_PAD = REPO / "data" / "config" / "winkels.json"
+# Sinds 18 sep 2026 in `config/` en dus in git, om dezelfde reden als
+# SLUITINGEN_PAD hieronder: winkel- en kassanamen zijn geen klantdata, en de
+# nachtelijke sync draait op een GitHub-runner die `data/` nooit ziet.
+WINKELS_PAD = REPO / "config" / "winkels.json"
 
 #: De vooraf bekende sluitingsdagen. Zonder bestand kent de prognose geen
 #: toekomstige sluitingen en zegt ze dat, in plaats van open aan te nemen.
