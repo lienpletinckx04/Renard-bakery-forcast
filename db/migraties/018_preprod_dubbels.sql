@@ -1,0 +1,42 @@
+-- 018: de preprod-kassa's uit fact_verkoop. Dubbels, geen tweede vestiging.
+--
+-- WAT ER GEBEURD IS
+-- Tot 18 september 2026 vulde het platform zich uit de PREPROD-Odoo. Die
+-- noemde de drie kassa's van Elsene `Kassa 1`, `Kassa 2` en `Kassa 3`. De
+-- PRODUCTIE-Odoo (renard_bakery op idealis.cloud) noemt diezelfde drie
+-- registers `Ixelles Kassa 1/2/3` -- de naam veranderde, de kassa niet.
+--
+-- `filiaal_id` draagt die naam en zit in de primaire sleutel van
+-- fact_verkoop. De eerste productiesync kon de oude rijen dus niet overschrijven
+-- (insert-on-conflict vond geen conflict) en zette ze ernaast. Gevolg: elke
+-- verkoop van 2 januari 2025 tot 7 augustus 2026 stond er twee keer in, en de
+-- omzet op het scherm zou verdubbelen.
+--
+-- WAT ER GEMETEN IS, VOOR DE ZEKERHEID (18 sep 2026)
+-- Over de overlappende periode, per kassanummer, per dag, per product:
+--   oud   (Kassa 1/2/3)          219.503 rijen   EUR 6.743.663,60
+--   nieuw (Ixelles Kassa 1/2/3)  219.498 rijen   EUR 6.743.592,90
+--   rij voor rij identiek op datum, product, aantal EN bedrag: 219.242 (99,88%)
+-- Het verschil is EUR 70,70 op EUR 6,7 miljoen, verspreid over enkele honderden
+-- rijen: naleveringen en correcties die in productie ná de preprod-kopie zijn
+-- doorgevoerd. De productierij is daar de juiste, want die komt uit het systeem
+-- dat de bakkerij vandaag gebruikt.
+--
+-- WAAROM WEGGOOIEN EN NIET HERNOEMEN
+-- Hernoemen zou botsen op de primaire sleutel, want de productierij bestaat al.
+-- Er gaat niets verloren: de productiedata dekt dezelfde periode volledig en
+-- loopt bovendien door tot vandaag, waar de preprod op 7 augustus stopt.
+--
+-- WAT DIT NIET AANRAAKT
+-- `fact_bonnen` draagt dezelfde oude namen, maar wordt hier BEWUST niet
+-- geraakt: die tabel kent alleen preprod-rijen, en leeggooien zou het
+-- bonnenaantal en het gemiddelde bonbedrag van het scherm halen zonder dat er
+-- iets voor in de plaats komt. Ze wordt gevuld door `make extract-bonnen`, dat
+-- bewust buiten de nachtelijke ketting staat (zie scripts/nachtelijke_sync.py).
+-- Tot die met productienamen herladen is, zijn de bonnencijfers oud; dat staat
+-- als open punt in docs/open-punten.md.
+--
+-- Idempotent: een tweede keer draaien verwijdert nul rijen.
+
+delete from public.fact_verkoop
+ where filiaal_id in ('Kassa 1', 'Kassa 2', 'Kassa 3');

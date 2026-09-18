@@ -15,7 +15,15 @@ name: Nachtelijke sync
 on:
   schedule:
     - cron: "30 1 * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      krimp_ok:
+        description: >-
+          Sta toe dat het contract KRIMPT. Alleen aanvinken als een kanaal of
+          een winkel er bewust uit is (bv. TGTG, 18 sep 2026). Anders weigert
+          de contractlader, en terecht.
+        type: boolean
+        default: false
 
 # `issues: write` draagt de faalmelding onderaan. Zonder deze regel faalt die
 # stap zelf met een 403 en verdwijnt de storing in een logboek dat niemand
@@ -162,6 +170,14 @@ jobs:
           PY
 
       - name: Nachtelijke sync
+        # CONTRACT_KRIMP_OK staat hier bewust NIET vast aan. De beslissing van
+        # 18 augustus 2026 (beslissingen.md) koos een omgevingsvariabele boven
+        # een make-vlag met als reden: krimp hoort een bewuste, eenmalige
+        # handeling van een mens te zijn en niet iets dat kan inslijten. Een
+        # workflow_dispatch-invoer is precies dat -- iemand vinkt hem aan voor
+        # één run. De cron kent geen inputs en draait dus altijd mét de wacht.
+        env:
+          CONTRACT_KRIMP_OK: ${{ inputs.krimp_ok && '1' || '' }}
         run: make sync
 
       - name: Faalmelding als issue
