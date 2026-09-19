@@ -683,22 +683,50 @@ def _bronpunt(stand: Bronstand, vandaag: dt.date) -> BriefingPunt | None:
             if stand.laatste_meetdag is not None
             else t("onbekend", "inconnue")
         )
-        return BriefingPunt(
-            kop=t(f"{naam} loopt achter", f"{naam} est en retard"),
-            waarom=t(
+        # Deliveroo komt niet vanzelf: iemand in de bakkerij laadt de export
+        # op. 'Achter' is daar dus geen storing maar een to-do, en het punt
+        # zegt precies wat en waar — anders staat er "nakijken, platform" bij
+        # iets dat alleen de bakkerij kan doen.
+        deliveroo = stand.bron == "deliveroo"
+        if deliveroo:
+            waarom = t(
+                f"De jongste Deliveroo-export loopt tot {laatste}. Sindsdien "
+                "telt Deliveroo niet mee in de totalen en blijft de kolom in "
+                "de dagtabel leeg: de cijfers ogen lager dan ze zijn.",
+                f"Le dernier export Deliveroo s'arrête au {laatste}. Depuis, "
+                "Deliveroo ne compte pas dans les totaux et la colonne du "
+                "tableau journalier reste vide : les chiffres paraissent plus "
+                "bas qu'ils ne sont.",
+            )
+            nodig = t(
+                "De Orders-export uit de Deliveroo Partner Hub (Reports) "
+                "opladen via het scherm Deliveroo-import — "
+                f"{_wie_bakkerij()}.",
+                "Charger l'export Orders du Deliveroo Partner Hub (Reports) "
+                f"via l'écran Import Deliveroo — {_wie_bakkerij()}.",
+            )
+        else:
+            waarom = t(
                 f"De jongste meting van deze bron is {laatste}. Cijfers per "
                 "kanaal op dit scherm lopen daarmee niet gelijk: een kanaal "
                 "dat later aanlevert, oogt kleiner dan het is.",
                 f"La dernière mesure de cette source date du {laatste}. Les "
                 "chiffres par canal de cet écran ne sont donc pas alignés : un "
                 "canal qui livre plus tard paraît plus petit qu'il n'est.",
-            ),
-            nodig=t(
+            )
+            nodig = t(
                 f"De aanlevering van deze bron moet nagekeken worden — "
                 f"{_wie_platform()}.",
                 f"La livraison de cette source doit être vérifiée — "
                 f"{_wie_platform()}.",
+            )
+        return BriefingPunt(
+            kop=t(
+                f"{naam}-export te doen" if deliveroo else f"{naam} loopt achter",
+                f"Export {naam} à faire" if deliveroo else f"{naam} est en retard",
             ),
+            waarom=waarom,
+            nodig=nodig,
             bedrag=str(dagen) if dagen is not None else None,
             soort="aantal" if dagen is not None else None,
             eenheid=_dagen_eenheid(dagen) if dagen is not None else None,

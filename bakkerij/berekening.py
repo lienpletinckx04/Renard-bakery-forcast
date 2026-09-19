@@ -1175,6 +1175,12 @@ class Bonritme:
     dagen: int
     vorig_dagen: int
     dagen_zonder_bonnen: int
+    # B0 en T0: de twee getallen waar de effecten hierboven van afgeleid zijn.
+    # Ze staan erbij zodat het scherm kan zeggen "312 klanten per dag tegenover
+    # 240" in plaats van alleen "+ € 4.525": een lezer vergelijkt getallen,
+    # geen effecten. None zolang er geen vergelijkbaar vorig venster is.
+    vorig_bonnen_per_dag: Decimal | None = None
+    vorig_bonbedrag: Decimal | None = None
 
     @property
     def vergelijkbaar(self) -> bool:
@@ -1252,6 +1258,7 @@ def bonritme(
     b1, t1 = _b_en_t(huidig)
 
     verschil = bonneneffect = bonbedrag_effect = kruisterm = None
+    vorig_b = vorig_t = None
     if len(vorig) == len(huidig) and t1 is not None:
         b0, t0 = _b_en_t(vorig)
         if t0 is not None:
@@ -1259,6 +1266,9 @@ def bonritme(
             bonneneffect = euro((b1 - b0) * t0)
             bonbedrag_effect = euro(b0 * (t1 - t0))
             kruisterm = verschil - bonneneffect - bonbedrag_effect
+            vorig_b = Decimal(str(b0)).quantize(Decimal("0.1"),
+                                                rounding=ROUND_HALF_UP)
+            vorig_t = euro(t0)
 
     return Bonritme(
         bonnen_per_dag=Decimal(str(b1)).quantize(
@@ -1272,13 +1282,17 @@ def bonritme(
         dagen=len(huidig),
         vorig_dagen=len(vorig),
         dagen_zonder_bonnen=zonder_bonnen,
+        vorig_bonnen_per_dag=vorig_b,
+        vorig_bonbedrag=vorig_t,
     )
 
 
 # --- de CFO-dagtabel ---------------------------------------------------------
 
 
-CFO_DAGTABEL_KOLOMMEN = ["datum", "klanten", "omzet", "gemiddeld_ticket"]
+CFO_DAGTABEL_KOLOMMEN = [
+    "datum", "klanten", "omzet", "gemiddeld_ticket", "deliveroo", "totaal",
+]
 
 
 def cfo_dagtabel(
@@ -1322,6 +1336,24 @@ def cfo_dagtabel(
 
     venster = binnen[-dagen:]
 
+    # Deliveroo naast de kassa, zoals in het weekrapport van de opdrachtgever
+    # (kolommen klanten, kassa, Deliveroo, totaal). De Deliveroo-omzet is
+    # netto: subtotaal min commissie, zie `canoniek.orders_naar_canoniek`.
+    #
+    # DRIE TOESTANDEN, EN ZE ZIEN ER VERSCHILLEND UIT. Een dag mét een
+    # Deliveroo-rij is een gemeten dag. Een dag zónder rij maar bínnen de
+    # geladen historiek is een dag met nul bestellingen: de export heeft over
+    # die dag gesproken en er stond niets in. Een dag ná de jongste export is
+    # onbekend (None): daar heeft nog geen export over gesproken, en nul tonen
+    # zou een gat in de aanlevering laten lezen als een dag zonder klanten.
+    # Het totaal volgt de Deliveroo-kolom: onbekend plus gemeten is onbekend.
+    dl_per_dag = (
+        dagtotalen_df[dagtotalen_df["kanaal"] == "deliveroo"]
+        .groupby("datum")["omzet"].sum()
+    )
+    dl_van = pd.Timestamp(dl_per_dag.index.min()) if not dl_per_dag.empty else None
+    dl_tot = pd.Timestamp(dl_per_dag.index.max()) if not dl_per_dag.empty else None
+
     # De bonnen zijn per kassa; de som over de kassa's van één dag is het
     # aantal klanten. De som van bonnen per product-dag zou dat NIET zijn --
     # zie de docstring van `bonritme`.
@@ -1336,10 +1368,17 @@ def cfo_dagtabel(
         omzet = euro(float(omzet_per_dag.loc[dag]))
         aantal = klanten_per_dag.get(dag)
         klanten = int(aantal) if aantal is not None and aantal > 0 else None
+        if dl_tot is not None and dl_van <= dag <= dl_tot:
+            deliveroo = euro(float(dl_per_dag.get(dag, 0.0)))
+        else:
+            deliveroo = None
         rijen.append({
             "datum": dag,
             "klanten": klanten,
             "omzet": omzet,
+            "deliveroo": deliveroo,
+            "totaal": (euro(float(omzet) + float(deliveroo))
+                       if deliveroo is not None else None),
             # Het gemiddelde ticket is de omzet gedeeld door de klanten van
             # diezelfde dag, en niet het gemiddelde van de dagtickets: dat
             # laatste weegt een rustige dinsdag even zwaar als een zaterdag.

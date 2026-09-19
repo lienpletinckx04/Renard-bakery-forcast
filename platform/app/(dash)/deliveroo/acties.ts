@@ -19,18 +19,40 @@ import {
 import type { Sleutel } from "@/lib/taal";
 
 /**
- * De uitkomst draagt SLEUTELS en geen tekst, plus eventuele invulwaarden —
- * hetzelfde patroon als het kostenmodel en de sluitingskalender: de actie kent
- * de taal van de lezer niet, het formulier vertaalt bij het tonen.
+ * Eén regel per bestand: de sleutel van de melding plus de invulwaarden.
+ * Sleutels en geen tekst — de actie kent de taal van de lezer niet, het
+ * formulier vertaalt bij het tonen (zelfde patroon als het kostenmodel en de
+ * sluitingskalender).
  */
-export type UploadUitkomst = {
-  ok?: Sleutel;
-  fout?: Sleutel;
+export type UploadRegel = {
+  sleutel: Sleutel;
   waarden?: Record<string, string>;
+  /** true als het bestand bewaard is (of er al stond); false bij een weigering. */
+  gelukt: boolean;
 };
 
 /**
- * Laadt één bronbestand op: een export zoals ze van Deliveroo komt.
+ * De uitkomst van één opladen. `fout` is de melding die het hele formulier
+ * tegenhoudt (sessie, rol, omgeving, geen bestand gekozen); `regels` is de
+ * uitkomst per gekozen bestand, in de volgorde van kiezen.
+ */
+export type UploadUitkomst = {
+  fout?: Sleutel;
+  waarden?: Record<string, string>;
+  regels: UploadRegel[];
+};
+
+/**
+ * Laadt één of meer bronbestanden op: exports zoals ze van Deliveroo komen.
+ *
+ * MEERDERE TEGELIJK, ELK VOOR ZICH. De Partner Hub levert exports van zestien
+ * dagen, dus wie een jaar inhaalt heeft er twintig. Eén per keer kiezen is
+ * dan de reden waarom het niet gebeurt. Het veld neemt daarom meerdere
+ * bestanden aan, en elk bestand krijgt zijn eigen regel: een dubbel of een
+ * verkeerd type houdt de andere niet tegen, en de lezer ziet per bestand wat
+ * ermee gebeurd is. De grens per aanroep is die van de server-actie
+ * (`serverActions.bodySizeLimit` in next.config); een export van zestien
+ * dagen is een paar honderd kilobyte, dus dat is ruim.
  *
  * WAT DEZE ACTIE NIET DOET, EN DAT IS DE KERN. Ze leest het bestand niet en
  * pakt het niet uit. Ze kijkt naar naam, aangekondigd type en omvang, neemt de
@@ -50,38 +72,53 @@ export async function laadBestandOp(
 ): Promise<UploadUitkomst> {
   const sessie = await lees((await cookies()).get(COOKIE)?.value);
   if (!sessie) {
-    return { fout: "deliveroo.sessieVerlopen" };
+    return { fout: "deliveroo.sessieVerlopen", regels: [] };
   }
   if (sessie.rol !== "beheerder") {
-    return { fout: "deliveroo.alleenBeheerder" };
+    return { fout: "deliveroo.alleenBeheerder", regels: [] };
   }
   if (contractBron(process.env) !== "db") {
-    return { fout: "deliveroo.alleenDb" };
+    return { fout: "deliveroo.alleenDb", regels: [] };
   }
 
-  const veld = formulier.get("bestand");
-  // Een formulierveld is invoer van buiten: zonder deze controle is `veld` net
-  // zo goed een tekenreeks, en dan zou `.arrayBuffer()` het scherm omleggen in
-  // plaats van te weigeren.
-  if (!(veld instanceof File) || veld.size === 0 || veld.name === "") {
-    return { fout: "deliveroo.geenBestand" };
+  // Een formulierveld is invoer van buiten: zonder deze controle is een
+  // waarde net zo goed een tekenreeks, en dan zou `.arrayBuffer()` het scherm
+  // omleggen in plaats van te weigeren. Een leeg veld stuurt één File zonder
+  // naam mee; die telt niet als gekozen bestand.
+  const bestanden = formulier
+    .getAll("bestand")
+    .filter((v): v is File => v instanceof File && v.size > 0 && v.name !== "");
+  if (bestanden.length === 0) {
+    return { fout: "deliveroo.geenBestand", regels: [] };
   }
 
+  const regels: UploadRegel[] = [];
+  for (const veld of bestanden) {
+    regels.push(await laadEenBestandOp(veld, sessie.gebruiker));
+  }
+  if (regels.some((r) => r.gelukt)) {
+    revalidatePath("/deliveroo");
+  }
+  return { regels };
+}
+
+/** Eén bestand door de poort en naar de database; geeft de regel voor het scherm. */
+async function laadEenBestandOp(veld: File, gebruiker: string): Promise<UploadRegel> {
   const { fouten } = valideerUpload({
     bestandsnaam: veld.name,
     mediatype: veld.type,
     bytes: veld.size,
   });
   if (fouten.length > 0) {
-    // Eén fout per keer: de eerste. Wie meer bezwaren heeft, ziet na herstel
-    // vanzelf het volgende — een sleutel draagt maar één zin.
-    return { fout: fouten[0].sleutel, waarden: fouten[0].waarden };
+    // Eén fout per bestand: de eerste. Wie meer bezwaren heeft, ziet na
+    // herstel vanzelf het volgende — een sleutel draagt maar één zin.
+    return { sleutel: fouten[0].sleutel, waarden: fouten[0].waarden, gelukt: false };
   }
 
   const bestandsnaam = veld.name.trim();
   const mediatype = bepaalMediatype(bestandsnaam, veld.type);
   if (mediatype === null) {
-    return { fout: "deliveroo.typeOnbekend", waarden: { bestandsnaam } };
+    return { sleutel: "deliveroo.typeOnbekend", waarden: { bestandsnaam }, gelukt: false };
   }
 
   const bytes = new Uint8Array(await veld.arrayBuffer());
@@ -95,18 +132,16 @@ export async function laadBestandOp(
       sha256,
       inhoud_base64: naarBase64(bytes),
     },
-    sessie.gebruiker,
+    gebruiker,
   );
   if (melding === AL_GELADEN) {
-    return { fout: "deliveroo.alGeladen", waarden: { bestandsnaam } };
+    return { sleutel: "deliveroo.alGeladen", waarden: { bestandsnaam }, gelukt: true };
   }
   if (melding !== null) {
     // De reden hoort in de log en niet op het scherm: een afwijzing van
     // Postgres kan de gegevens van de mislukte rij dragen.
     console.error("laadBestandOp: bewaar_bron_upload weigerde", melding);
-    return { fout: "deliveroo.dbOpslaanMislukt" };
+    return { sleutel: "deliveroo.dbOpslaanMislukt", waarden: { bestandsnaam }, gelukt: false };
   }
-  revalidatePath("/deliveroo");
-
-  return { ok: "deliveroo.bewaard", waarden: { bestandsnaam } };
+  return { sleutel: "deliveroo.bewaard", waarden: { bestandsnaam }, gelukt: true };
 }

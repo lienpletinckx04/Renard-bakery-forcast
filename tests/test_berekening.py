@@ -864,6 +864,35 @@ def test_cfo_dagtabel_toont_klanten_omzet_en_ticket_per_dag():
     assert list(tabel["klanten"]) == [20, 20, 20]
     assert list(tabel["omzet"]) == [Decimal("100.00")] * 3
     assert list(tabel["gemiddeld_ticket"]) == [Decimal("5.00")] * 3
+    # Zonder Deliveroo-historiek is het kanaal onbekend, geen nul: het totaal
+    # volgt en blijft ook leeg.
+    assert tabel["deliveroo"].tolist() == [None, None, None]
+    assert tabel["totaal"].tolist() == [None, None, None]
+
+
+def test_cfo_dagtabel_zet_deliveroo_netto_naast_de_kassa_en_telt_op():
+    """Het weekrapport van de opdrachtgever: kassa, Deliveroo, totaal. Dag 1
+    en 2 vallen binnen de geladen Deliveroo-historiek: dag 1 heeft 40 netto,
+    dag 2 geen rij en dus nul bestellingen. Dag 3 ligt ná de jongste export
+    en is onbekend -- geen nul, en het totaal is dan ook onbekend."""
+    totalen = _bonnen_totalen([100.0] * 3)
+    dl = pd.DataFrame([
+        {"datum": pd.Timestamp("2025-01-01"), "kanaal": "deliveroo",
+         "omzet": 40.0, "stuks": 2.0},
+        {"datum": pd.Timestamp("2025-01-02"), "kanaal": "deliveroo",
+         "omzet": 0.0, "stuks": 0.0},
+    ])
+    # Dag 2 als rij met nul is hetzelfde als geen rij: de test zet hem er met
+    # opzet níét in, de historiek loopt van dag 1 tot en met dag 2 door dag 2
+    # als 'tot' van de export.
+    dl = pd.concat([totalen, dl.iloc[[0]], dl.iloc[[1]].assign(datum=pd.Timestamp("2025-01-02"))],
+                   ignore_index=True)
+    dl = dl[~((dl["kanaal"] == "deliveroo") & (dl["omzet"] == 0.0))
+            | (dl["datum"] == pd.Timestamp("2025-01-02"))]
+    leeg = pd.DataFrame(columns=["datum", "filiaal_id", "bonnen"])
+    tabel = bk.cfo_dagtabel(leeg, dl, pd.Timestamp("2025-01-03"), dagen=3)
+    assert tabel["deliveroo"].tolist() == [Decimal("40.00"), Decimal("0.00"), None]
+    assert tabel["totaal"].tolist() == [Decimal("140.00"), Decimal("100.00"), None]
 
 
 def test_cfo_dagtabel_houdt_een_dag_zonder_bonnentelling_in_de_tabel():

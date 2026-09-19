@@ -136,15 +136,21 @@ export default async function OverzichtPagina() {
       >
         {dagtabel ? (
           <>
+            {/* De kolommen van het weekrapport van de opdrachtgever: klanten,
+                kassa, Deliveroo, totaal, gemiddeld ticket. Deliveroo is netto
+                en een leeg vak is een dag ná de jongste export (onbekend, geen
+                nul); de reden staat onder de tabel als to-do. */}
             <Tabel
               data={{
                 kolommen: [
                   t("kol.dag"),
                   t("kol.klanten"),
-                  t("kol.omzet"),
+                  t("kol.kassa"),
+                  t("kol.deliveroo"),
+                  t("kol.totaal"),
                   t("kol.gemiddeldTicket"),
                 ],
-                uitlijning: eersteLinks(4),
+                uitlijning: eersteLinks(6),
                 rijen: dagtabel.rijen.map((r) => [
                   r.datum,
                   // Niet geteld is niet nul, en het woord ervoor komt uit
@@ -157,6 +163,10 @@ export default async function OverzichtPagina() {
                     ? t("cel.nietGeteld")
                     : aantal(r.klanten),
                   euro(r.omzet),
+                  r.deliveroo === null ? t("cel.nietGeteld") : euro(r.deliveroo),
+                  r.totaal === null
+                    ? t("cel.nietGeteld")
+                    : { tekst: euro(r.totaal), vet: true },
                   r.gemiddeld_ticket === null
                     ? t("cel.nietGeteld")
                     : euro(r.gemiddeld_ticket),
@@ -171,6 +181,25 @@ export default async function OverzichtPagina() {
                 {reden(antwoord.onbeschikbaar, "cfo_dagtabel.klanten")}
               </p>
             ) : null}
+            {/* Een gat in de Deliveroo-dekking is een to-do voor de bakkerij,
+                en hoort dus op te vallen: in de actiekleur, dik, met de link
+                naar het scherm waar het gebeurt. */}
+            {reden(antwoord.onbeschikbaar, "cfo_dagtabel.deliveroo") ? (
+              <p className="mt-2 max-w-prose rounded-klein border-l-4 border-signaal-letop bg-signaal-letop-vlak py-1.5 pl-3 text-sm font-bold text-zwart">
+                {reden(antwoord.onbeschikbaar, "cfo_dagtabel.deliveroo")}{" "}
+                <Link href="/deliveroo" className="underline underline-offset-2">
+                  {t("nav.deliveroo")}
+                </Link>
+              </p>
+            ) : null}
+            {/* De vragen die elke nieuwe lezer stelt, één keer beantwoord en
+                daarna ingeklapt: waarom klanten een geheel getal is, wat het
+                ticket precies deelt, waarom Deliveroo netto staat. */}
+            <MeerInfo label={t("dag.waaromTitel")}>
+              <p>{t("dag.waaromKlanten")}</p>
+              <p>{t("dag.waaromTicket")}</p>
+              <p>{t("dag.waaromDeliveroo")}</p>
+            </MeerInfo>
           </>
         ) : null}
       </Blok>
@@ -344,7 +373,10 @@ export default async function OverzichtPagina() {
                   r.label,
                   euro(r.omzet),
                   euro(r.gebruikelijk),
-                  euro(r.verschil),
+                  // De richting komt uit het contract en kleurt de cel als
+                  // chip: een uitschieter naar boven groen, naar beneden
+                  // rood. Het teken blijft in de tekst staan.
+                  { tekst: euro(r.verschil), richting: r.richting },
                 ]),
                 uitlijning: eersteLinks(4),
               }}

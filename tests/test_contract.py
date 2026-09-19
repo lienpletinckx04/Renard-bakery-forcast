@@ -1566,3 +1566,32 @@ def test_drilldown_restregel_in_het_contract_draagt_het_label():
     assert rest is not None
     assert rest["producten"] == "4"
     assert rest["label"] == "overige 4 producten"
+
+
+def test_bonritme_conclusie_zegt_wat_bewoog_en_hoeveel():
+    """De ontbinding in gewone taal, uit de cijfers: het hoofdwoord volgt de
+    grootste term, en de twee vergelijkingen (klanten, mandje) staan er met
+    getallen bij. Geen conclusie zonder vorig venster."""
+    from decimal import Decimal as D
+
+    from bakkerij import contract as ct
+    from bakkerij.berekening import Bonritme
+
+    rit = Bonritme(
+        bonnen_per_dag=D("312.0"), gemiddeld_bonbedrag=D("18.40"),
+        verschil=D("5637.18"), bonneneffect=D("4525.90"),
+        bonbedrag_effect=D("780.14"), kruisterm=D("331.14"),
+        dagen=30, vorig_dagen=30, dagen_zonder_bonnen=0,
+        vorig_bonnen_per_dag=D("240.0"), vorig_bonbedrag=D("17.60"),
+    )
+    zin = ct._bonritme_conclusie(rit)
+    assert zin.startswith("De omzet per dag steeg met € 5.637.")
+    assert "vooral doordat er meer klanten kwamen (312 tegenover 240 per dag)" in zin
+    assert "ook het mandje werd groter (€ 18,40 tegenover € 17,60)" in zin
+
+    zonder_vorig = Bonritme(
+        bonnen_per_dag=D("312.0"), gemiddeld_bonbedrag=D("18.40"),
+        verschil=None, bonneneffect=None, bonbedrag_effect=None,
+        kruisterm=None, dagen=30, vorig_dagen=12, dagen_zonder_bonnen=0,
+    )
+    assert ct._bonritme_conclusie(zonder_vorig) is None

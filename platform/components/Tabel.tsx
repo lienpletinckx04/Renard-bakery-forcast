@@ -1,6 +1,19 @@
-import type { Tabeldata } from "@/lib/contract";
+import type { Cel, Tabeldata } from "@/lib/contract";
+import { richtingChip } from "@/lib/signaal";
 
-/** Rustige tabel: 1px warmgrijze lijnen, cijfers rechts uitgelijnd en zwart. */
+/** Eén cel: tekst, of tekst als chip in de kleur van het oordeel. */
+function CelInhoud({ cel }: { cel: Cel }) {
+  if (typeof cel === "string") return <>{cel}</>;
+  const chip = richtingChip(cel.richting);
+  if (chip) return <span className={chip}>{cel.tekst}</span>;
+  return cel.vet ? <span className="font-bold">{cel.tekst}</span> : <>{cel.tekst}</>;
+}
+
+/**
+ * Rustige tabel: 1px warmgrijze lijnen, cijfers rechts uitgelijnd en zwart.
+ * Een cel met een oordeel (zie `Cel`) kleurt als chip; de tekst blijft
+ * staan, de kleur komt erbij (lib/signaal.ts).
+ */
 export default function Tabel({ data }: { data: Tabeldata }) {
   return (
     <div className="overflow-x-auto">
@@ -31,7 +44,7 @@ export default function Tabel({ data }: { data: Tabeldata }) {
                       : "text-left"
                   }`}
                 >
-                  {cel}
+                  <CelInhoud cel={cel} />
                 </td>
               ))}
             </tr>

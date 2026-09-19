@@ -95,9 +95,19 @@ export type MeetStaafdata = {
   y_as: As;
 };
 
+/**
+ * Eén cel: platte tekst, of tekst met een oordeel erbij. `richting` kleurt
+ * de cel als chip (groen op, rood neer; zie lib/signaal.ts), `vet` zet hem
+ * dik zonder oordeel (een totaalkolom). De tekst is altijd al opgemaakt door
+ * de pagina; het oordeel komt uit het contract en wordt hier nooit berekend.
+ */
+export type Cel =
+  | string
+  | { tekst: string; richting?: "op" | "neer" | null; vet?: boolean };
+
 export type Tabeldata = {
   kolommen: string[];
-  rijen: string[][]; // cellen al opgemaakt door de pagina, via lib/format.ts
+  rijen: Cel[][]; // cellen al opgemaakt door de pagina, via lib/format.ts
   uitlijning: ("links" | "rechts")[];
 };
 
@@ -182,6 +192,8 @@ export type OntbindingsTerm = {
   waarde: string; // machinewaarde in euro, met teken
   uitleg: string;
   richting: "op" | "neer" | null;
+  /** Aandeel van deze term in het verschil, percentage als machinewaarde; null bij een verschil van nul. */
+  aandeel?: string | null;
 };
 
 /**
@@ -194,6 +206,8 @@ export type Ontbinding = {
   verschil: { label: string; waarde: string; richting: "op" | "neer" | null };
   termen: OntbindingsTerm[];
   toelichting: string;
+  /** De ontbinding in één zin van gewone taal, uit de cijfers; null als er niets te zeggen valt. */
+  conclusie?: string | null;
 };
 
 /**
@@ -309,8 +323,12 @@ export type PeriodeVenster = {
 export type CfoDag = {
   datum: string; // kant-en-klaar daglabel, in de taal van de lezer
   klanten: string | null;
-  omzet: string;
+  omzet: string; // kassa
   gemiddeld_ticket: string | null;
+  /** Netto Deliveroo van die dag; null op een dag ná de jongste export (onbekend, geen nul). */
+  deliveroo: string | null;
+  /** Kassa plus Deliveroo; null zodra Deliveroo onbekend is. */
+  totaal: string | null;
 };
 
 export type CfoDagtabelData = {
@@ -370,6 +388,20 @@ export type KanaalBlok = {
   commissie_30d: string | null;
   netto_30d: string | null;
   inhouding_pct: string | null; // commissie/bruto, alleen bij een echte wig
+  /**
+   * Tot wanneer de geladen historiek van een periodiek kanaal loopt, en hoe
+   * ver dat achterligt op de kassa. Alleen voor Deliveroo; null voor de
+   * winkel (die komt elke nacht vanzelf) en zolang er geen rij is.
+   */
+  dekking: Exportdekking | null;
+};
+
+export type Exportdekking = {
+  tot: string; // ISO-datum
+  tot_label: string; // in de taal van de lezer
+  volgende_vanaf: string; // daglabel: waar de volgende export moet beginnen
+  dagen_geleden: string; // machinewaarde
+  status: "goed" | "let_op" | "actie";
 };
 
 export type KanalenData = {

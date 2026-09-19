@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import Briefing from "@/components/Briefing";
 import Kaart from "@/components/Kaart";
 import Lijngrafiek from "@/components/Lijngrafiek";
@@ -6,10 +8,11 @@ import Onbeschikbaar from "@/components/Onbeschikbaar";
 import PaginaKop from "@/components/PaginaKop";
 import Tabel from "@/components/Tabel";
 import Toelichting from "@/components/Toelichting";
-import type { KanalenData } from "@/lib/contract";
+import type { Exportdekking, KanalenData } from "@/lib/contract";
 import { aantal, euro, procent } from "@/lib/format";
 import { huidigeTaal, laadContract } from "@/lib/laadContract";
-import { maakT } from "@/lib/taal";
+import { STATUSLIJN, STATUSVLAK } from "@/lib/signaal";
+import { maakT, type T } from "@/lib/taal";
 import { reden } from "@/lib/toelichting";
 import { eersteLinks } from "@/lib/uitlijning";
 
@@ -21,6 +24,42 @@ import { eersteLinks } from "@/lib/uitlijning";
  * het contract; hier wordt niets opgeteld (harde regel 4).
  */
 export const dynamic = "force-dynamic";
+
+/**
+ * Tot wanneer de Deliveroo-export loopt, in de kleur van de status uit het
+ * contract: groen als de export vers is, oranje als er een te doen is, rood
+ * als het kanaal al weken uit de totalen valt. Bij let_op en actie staat de
+ * to-do erbij met de link naar het scherm waar het gebeurt.
+ */
+function Dekking({
+  dekking,
+  t,
+}: {
+  dekking: Exportdekking;
+  t: T;
+}) {
+  const alarm = dekking.status !== "goed";
+  return (
+    <div
+      className={`mt-4 rounded-klein border-l-4 py-2 pl-3 pr-3 text-sm ${STATUSLIJN[dekking.status]} ${STATUSVLAK[dekking.status]} ${alarm ? "font-bold" : ""} text-zwart`}
+    >
+      <p>
+        {t("deliveroo.exportTot", {
+          datum: dekking.tot_label,
+          dagen: aantal(dekking.dagen_geleden),
+        })}
+      </p>
+      {alarm ? (
+        <p className="mt-1">
+          {t("deliveroo.exportOpladen", { datum: dekking.volgende_vanaf })}{" "}
+          <Link href="/deliveroo" className="underline underline-offset-2">
+            {t("nav.deliveroo")}
+          </Link>
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 export default async function KanalenPagina() {
   const taal = await huidigeTaal();
@@ -88,12 +127,14 @@ export default async function KanalenPagina() {
           );
           if (kanaalReden || kanaal.omzet_30d === null || kanaal.aandeel === null) {
             return (
-              <Onbeschikbaar
-              t={t}
-                key={kanaal.kanaal}
-                titel={kanaal.naam}
-                reden={kanaalReden ?? t("kanalen.geenKoppeling")}
-              />
+              <div key={kanaal.kanaal}>
+                <Onbeschikbaar
+                  t={t}
+                  titel={kanaal.naam}
+                  reden={kanaalReden ?? t("kanalen.geenKoppeling")}
+                />
+                {kanaal.dekking ? <Dekking dekking={kanaal.dekking} t={t} /> : null}
+              </div>
             );
           }
           return (
@@ -103,10 +144,11 @@ export default async function KanalenPagina() {
               </div>
               <div className="mt-1 text-sm font-light text-zwart">
                 {t("kanalen.laatste30Aandeel")}{" "}
-                <span className="font-medium text-zwart tabular-nums">
+                <span className="rounded-klein bg-beige px-2 py-0.5 font-bold text-zwart tabular-nums">
                   {procent(kanaal.aandeel)}
                 </span>
               </div>
+              {kanaal.dekking ? <Dekking dekking={kanaal.dekking} t={t} /> : null}
               {kanaal.verloop ? (
                 <div className="mt-4">
                   <Lijngrafiek data={kanaal.verloop} compact />

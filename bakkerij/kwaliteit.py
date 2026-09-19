@@ -155,11 +155,14 @@ STANDAARD_ACHTER_DAGEN = 45
 #: geen kanaal met een periodiek (niet-dagelijks) ritme. Een lat voor een bron
 #: die nog niet bestaat is een getal dat niemand ooit tegen de werkelijkheid
 #: houdt.
-#: Deliveroo: 90 dagen. Partner Hub levert per download hoogstens negentig
-#: dagen, dus wie per kwartaal oplaadt loopt nooit meer dan dat achter; wie
-#: het vergeet, ziet het hier als 'achter'. Gekozen op 19 september 2026, de
-#: dag dat het kanaal geladen is.
-ACHTER_DAGEN_PER_KANAAL: dict[str, int] = {"deliveroo": 90}
+#: Deliveroo: 21 dagen. De Partner Hub levert Orders-exports van zestien
+#: dagen en de bakkerij laadt ze om de twee weken op; drie weken zonder
+#: nieuwe export is dus één gemiste ronde, en dat hoort op de briefing als
+#: to-do (zie `briefing._bronpunt`). Eerst stond hier 90, de lengte van het
+#: langste exportvenster — maar dat is een grens voor "nooit meer op te halen",
+#: niet voor "de cijfers lopen achter". Gekozen op 19 september 2026, de dag
+#: dat het kanaal geladen is; dezelfde grens als `contract.EXPORT_LAAT_DAGEN`.
+ACHTER_DAGEN_PER_KANAAL: dict[str, int] = {"deliveroo": 21}
 
 #: Zoveel dagen moet de kalender minstens voorbij vandaag lopen: de prognose
 #: heeft voor elke voorspelde dag een kalenderrij nodig (zie VOORUIT_DAGEN in

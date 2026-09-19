@@ -135,6 +135,19 @@ const WOORDEN = {
     "D'où vient la variation : les clients ou le panier ?",
   ],
   "dag.dagtabel": ["De week, dag per dag", "La semaine, jour par jour"],
+  "dag.waaromTitel": ["Waarom staan de cijfers zo?", "Pourquoi ces chiffres ?"],
+  "dag.waaromKlanten": [
+    "Klanten is een geheel getal omdat het een telling van kassabonnen is: één bon is één klant. Een gemiddelde (het ticket, of klanten per dag over een week) mag wél cijfers na de komma hebben.",
+    "Le nombre de clients est un entier parce que c'est un comptage de tickets de caisse : un ticket, un client. Une moyenne (le ticket, ou les clients par jour sur une semaine) peut, elle, avoir des décimales.",
+  ],
+  "dag.waaromTicket": [
+    "Het gemiddelde ticket is de kassaomzet van die dag gedeeld door de klanten van diezelfde dag. Deliveroo zit er niet in: daar is geen bonnentelling, alleen bestellingen.",
+    "Le ticket moyen est le chiffre d'affaires de caisse du jour divisé par les clients du même jour. Deliveroo n'y entre pas : il n'y a pas de comptage de tickets, seulement des commandes.",
+  ],
+  "dag.waaromDeliveroo": [
+    "Deliveroo staat netto: wat overblijft na de commissie van het platform, want dat is wat op de rekening komt. Bruto en commissie staan op Verkoopkanalen. Een leeg Deliveroo-vak is een dag ná de jongste export: onbekend, niet nul.",
+    "Deliveroo est net : ce qui reste après la commission de la plateforme, car c'est ce qui arrive sur le compte. Brut et commission figurent sur Canaux de vente. Une case Deliveroo vide est un jour après le dernier export : inconnu, pas zéro.",
+  ],
   "dag.weekdag": [
     "Gemiddelde omzet per weekdag",
     "Chiffre d'affaires moyen par jour de la semaine",
@@ -739,8 +752,20 @@ const WOORDEN = {
     "Dit scherm leest het bestand niet en rekent er niets uit: het geeft de bytes ongewijzigd door aan de database. Het uitpakken gebeurt in de verwerkingslaag, op één plaats.",
     "Cet écran ne lit pas le fichier et n'en calcule rien : il transmet les octets tels quels à la base de données. Le dépouillement a lieu dans la couche de traitement, en un seul endroit.",
   ],
-  "deliveroo.bestandLabel": ["Bestand", "Fichier"],
-  "deliveroo.opladen": ["Bestand opladen", "Charger le fichier"],
+  "deliveroo.bestandLabel": ["Bestanden", "Fichiers"],
+  "deliveroo.opladen": ["Bestanden opladen", "Charger les fichiers"],
+  "deliveroo.uitlegMeerdere": [
+    "Je mag meerdere bestanden tegelijk kiezen: houd Ctrl (of Cmd) ingedrukt bij het kiezen, of sleep ze samen in het veld. Elk bestand krijgt zijn eigen melding; een dubbel houdt de andere niet tegen.",
+    "Vous pouvez choisir plusieurs fichiers à la fois : maintenez Ctrl (ou Cmd) en choisissant, ou glissez-les ensemble dans le champ. Chaque fichier reçoit son propre message ; un doublon ne bloque pas les autres.",
+  ],
+  "deliveroo.exportTot": [
+    "Deliveroo-export loopt tot {datum} ({dagen} dagen achter op de kassa).",
+    "L'export Deliveroo s'arrête au {datum} ({dagen} jours de retard sur la caisse).",
+  ],
+  "deliveroo.exportOpladen": [
+    "Te doen: de Orders-export vanaf {datum} opladen",
+    "À faire : charger l'export Orders à partir du {datum}",
+  ],
   "deliveroo.opladenBezig": ["Opladen…", "Chargement…"],
   "deliveroo.alleenBeheerderVak": [
     "Opladen kan alleen een beheerder. De lijst hieronder toont wat er al opgeladen is.",
@@ -806,6 +831,10 @@ const WOORDEN = {
     "Er is geen bestand gekozen.",
     "Aucun fichier n'a été choisi.",
   ],
+  "deliveroo.dbOpslaanMisluktBestand": [
+    "\"{bestandsnaam}\" is niet bewaard: de database weigerde de opslag.",
+    "« {bestandsnaam} » n'a pas été conservé : la base de données a refusé l'enregistrement.",
+  ],
   "deliveroo.naamOngeldig": [
     "\"{bestandsnaam}\" is geen bruikbare bestandsnaam: ze mag geen schuine streep of backslash bevatten.",
     "« {bestandsnaam} » n'est pas un nom de fichier utilisable : il ne peut contenir ni barre oblique ni barre oblique inversée.",
@@ -827,6 +856,9 @@ const WOORDEN = {
   "kol.dag": ["Dag", "Jour"],
   "kol.klanten": ["Klanten", "Clients"],
   "kol.gemiddeldTicket": ["Gem. ticket", "Ticket moyen"],
+  "kol.kassa": ["Kassa", "Caisse"],
+  "kol.deliveroo": ["Deliveroo", "Deliveroo"],
+  "kol.totaal": ["Totaal", "Total"],
   // Wat er in een cel staat die niet gemeten is. Nooit een nul en nooit een
   // streepje: "niet geteld" en "nul klanten" zijn twee verschillende dingen,
   // en juist dat verschil is waarom deze kolom bestaat.

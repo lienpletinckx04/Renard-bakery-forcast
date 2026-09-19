@@ -39,6 +39,15 @@ export function richtingChip(richting: Richting | undefined): string {
   return "";
 }
 
+/**
+ * De status die bij een richting hoort: omlaag is actie, omhoog of geen
+ * richting is goed. Voor vlakken die op een richting kleuren maar de
+ * statustokens gebruiken (de conclusie boven een ontbinding).
+ */
+export function richtingStatus(richting: Richting | undefined): Status {
+  return richting === "neer" ? "actie" : "goed";
+}
+
 /** Achtergrondvlak bij een briefingstatus. */
 export const STATUSVLAK: Record<Status, string> = {
   goed: "bg-signaal-goed-vlak",

@@ -1287,3 +1287,25 @@ E4 (dat sinds vanavond de échte productieconstructie leent in plaats van hem na
 **Waarom `Renard Bakery` bij Elsene hoort:** in de exports bestaan drie vestigingsnamen: `Renard Bakery` (tot juli 2026), `Renard Bakery Ixelles` (vanaf juli 2026) en `Renard Bakery Uccle` (vanaf augustus 2026). Ukkel opende eind augustus; de enige winkel die vóór juli bestond is Elsene, dus de naamloze vermelding is Elsene van vóór de hernoeming. Dat is een lezing en geen bevestiging (zie `plan-deliveroo-parser.md`), maar de enige die met de openingsdata te rijmen valt.
 **Wat openstaat, en niet stilzwijgend:** (1) de bedragen in het weekrapport van de opdrachtgever (Fort Jaco, 1 en 2 september) zijn ongeveer de helft van het subtotaal in de export; welke bron dat rapport gebruikt is nog niet bevestigd. (2) De verdeling van Items Sold over dagen, voor een productmix per kanaal. (3) De bestelling van 5 t/m 20 augustus 2026 ontbreekt in de export (lege bestanden): hoogstwaarschijnlijk de zomersluiting, te bevestigen op het scherm Sluitingsdagen.
 **Alternatief:** een `dl-`-product per artikel uit Items Sold, met een verdeling van het periodetotaal over de dagen naar rato van de dagomzet uit Orders. Niet verworpen maar uitgesteld: het is de tweede helft, en ze verandert niets aan wat hier geladen wordt.
+
+## 2026-09-19, Deliveroo-export is een to-do van de bakkerij, en het scherm zegt dat
+
+- De dagtabel op Dagoverzicht toont kassa, Deliveroo (netto) en totaal naast
+  elkaar, zoals in het weekrapport dat de opdrachtgever met de hand maakte.
+  Een dag ná de jongste export is onbekend en geen nul; het totaal volgt.
+- Verkoopkanalen toont per kanaal tot wanneer de export loopt (`dekking`),
+  gekleurd: 7 dagen goed, tot 21 dagen let_op, daarna actie. De lat in
+  `kwaliteit.ACHTER_DAGEN_PER_KANAAL` gaat mee van 90 naar 21 dagen, zodat
+  een gemiste exportronde op de briefing komt als to-do met de link naar
+  Deliveroo-import; de bakkerij laadt op, niet het platform.
+- Het uploadscherm neemt meerdere bestanden tegelijk aan, elk met zijn eigen
+  regel en kleur. Eén per keer was de reden waarom een jaar inhaal niet
+  gebeurde.
+- De ontbinding klanten/mandje krijgt een conclusie in gewone taal, uit de
+  cijfers (`_bonritme_conclusie`): "de omzet per dag steeg met X, vooral
+  doordat er meer klanten kwamen (312 tegenover 240)". Termen dragen hun
+  aandeel in het verschil. `Bonritme` geeft daarvoor B0 en T0 mee.
+- Tabelcellen kunnen een oordeel dragen (`Cel` met `richting`) en kleuren
+  dan als chip; afwijkende dagen gebruiken dat. Onder de dagtabel staat een
+  ingeklapte "waarom": klanten is een geheel getal (bonnentelling), het
+  ticket deelt kassa door klanten, Deliveroo staat netto.

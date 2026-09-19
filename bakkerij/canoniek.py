@@ -79,10 +79,14 @@ CANONIEK_DTYPES = {
 # De constante blijft Nederlands (module-constanten bevriezen bij import en
 # kennen geen taal); wie hem in het contract zet, kiest via taal.t() tussen
 # deze en de Franse variant eronder.
-DELIVEROO_REDEN = ("Historiek nog niet aangeleverd; op te halen uit Partner Hub "
-                   "-> Reports (12 maanden, venster schuift dagelijks op)")
-DELIVEROO_REDEN_FR = ("Historique pas encore fourni ; à récupérer dans Partner "
-                      "Hub -> Reports (12 mois, la fenêtre avance chaque jour)")
+DELIVEROO_REDEN = ("Nog geen Deliveroo Orders-export opgeladen. Te doen: uit "
+                   "Partner Hub -> Reports halen en opladen via het scherm "
+                   "Deliveroo-import (venster van 12 maanden, schuift "
+                   "dagelijks op)")
+DELIVEROO_REDEN_FR = ("Aucun export Orders Deliveroo chargé. À faire : le "
+                      "récupérer dans Partner Hub -> Reports et le charger via "
+                      "l'écran Import Deliveroo (fenêtre de 12 mois, avance "
+                      "chaque jour)")
 
 # Een sluitingsdag met één losse bon is nog steeds een sluitingsdag.
 #

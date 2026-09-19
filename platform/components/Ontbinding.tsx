@@ -1,7 +1,7 @@
 import MeerInfo from "@/components/MeerInfo";
 import type { Ontbinding as OntbindingData } from "@/lib/contract";
-import { euro } from "@/lib/format";
-import { richtingKleur } from "@/lib/signaal";
+import { euro, procent } from "@/lib/format";
+import { richtingKleur, richtingStatus, STATUSLIJN, STATUSVLAK } from "@/lib/signaal";
 
 /**
  * Een gemeten verschil en de termen waarin het uiteenvalt, als leesbare brug:
@@ -41,8 +41,19 @@ export default function Ontbinding({
    */
   meerLabel: string;
 }) {
+  const status = richtingStatus(data.verschil.richting);
   return (
     <div>
+      {/* Eerst de zin, dan de cijfers. De conclusie komt uit het contract,
+          uit de data; hier staat ze groot en in de kleur van de richting,
+          zodat wie geen tijd heeft na één regel weet wat er gebeurde. */}
+      {data.conclusie ? (
+        <p
+          className={`mb-5 rounded-klein border-l-4 py-2 pl-3 pr-3 text-base font-bold text-zwart ${STATUSLIJN[status]} ${STATUSVLAK[status]}`}
+        >
+          {data.conclusie}
+        </p>
+      ) : null}
       <ul className="space-y-4">
         {data.termen.map((term) => (
           <li
@@ -62,6 +73,13 @@ export default function Ontbinding({
             >
               <Pijl richting={term.richting} />
               {euro(term.waarde)}
+              {/* Het aandeel in het verschil, klein erachter: zo leest
+                  "vooral van klanten" als 80 % en niet als een gevoel. */}
+              {term.aandeel ? (
+                <span className="ml-2 text-xs font-light text-zwart">
+                  {procent(term.aandeel)}
+                </span>
+              ) : null}
             </span>
           </li>
         ))}

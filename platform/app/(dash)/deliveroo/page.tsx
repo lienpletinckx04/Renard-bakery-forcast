@@ -90,6 +90,7 @@ export default async function DeliverooPagina() {
       <Kaart>
         <MeerInfo label={t("deliveroo.hoewerkt")}>
           <p>{t("deliveroo.uitlegOpladen", { max: geheelGetal(MAX_MB) })}</p>
+          <p className="mt-2">{t("deliveroo.uitlegMeerdere")}</p>
           <p className="mt-2">{t("deliveroo.uitlegNachtelijk")}</p>
           <p className="mt-2">{t("deliveroo.uitlegNietGelezen")}</p>
         </MeerInfo>

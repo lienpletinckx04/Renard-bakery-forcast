@@ -6,20 +6,21 @@ import { maakT, type T, type Taal } from "@/lib/taal";
 
 import { laadBestandOp, type UploadUitkomst } from "./acties";
 
-const LEEG: UploadUitkomst = {};
+const LEEG: UploadUitkomst = { regels: [] };
 
-function meldingTekst(uitkomst: UploadUitkomst, t: T): string {
-  const sleutel = uitkomst.fout ?? uitkomst.ok;
-  if (!sleutel) return "";
-  return t(sleutel, uitkomst.waarden);
+function foutTekst(uitkomst: UploadUitkomst, t: T): string {
+  if (!uitkomst.fout) return "";
+  return t(uitkomst.fout, uitkomst.waarden);
 }
 
 const invoerKlasse =
   "rounded-klein border border-warmgrijs bg-wit px-3 py-1.5 text-sm text-zwart outline-none placeholder:text-zwart/45 focus:border-zwart focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zwart";
 
 /**
- * Het uploadveld met zijn knop. Eén veld, één handeling: kies een bestand en
- * laad het op.
+ * Het uploadveld met zijn knop. Eén veld, één handeling: kies één of meer
+ * bestanden en laad ze op. Elk bestand krijgt na afloop zijn eigen regel, in
+ * de kleur van de uitkomst: wie twintig exports tegelijk kiest, ziet in één
+ * oogopslag welke bewaard zijn, welke er al stonden en welke geweigerd zijn.
  *
  * DIT FORMULIER LEEST HET BESTAND NIET. Er is geen FileReader, geen voorbeeld,
  * geen telling van rijen — de bytes gaan via de server-actie ongewijzigd naar
@@ -49,6 +50,7 @@ export default function UploadFormulier({
           type="file"
           name="bestand"
           accept={accept}
+          multiple
           className={`min-w-64 flex-1 ${invoerKlasse}`}
         />
       </label>
@@ -60,12 +62,27 @@ export default function UploadFormulier({
         {bezig ? t("deliveroo.opladenBezig") : t("deliveroo.opladen")}
       </button>
       {/* Vaste hoogte, zodat het formulier niet verspringt bij een melding. */}
-      <p
-        aria-live="polite"
-        className="mt-3 min-h-[1.25rem] max-w-prose text-sm font-light text-zwart"
-      >
-        {meldingTekst(uitkomst, t)}
-      </p>
+      <div aria-live="polite" className="mt-3 min-h-[1.25rem] max-w-prose text-sm">
+        {uitkomst.fout ? (
+          <p className="font-bold text-signaal-actie">{foutTekst(uitkomst, t)}</p>
+        ) : null}
+        {uitkomst.regels.length > 0 ? (
+          <ul className="space-y-1">
+            {uitkomst.regels.map((regel, i) => (
+              <li
+                key={i}
+                className={`rounded-klein border-l-4 py-1 pl-3 ${
+                  regel.gelukt
+                    ? "border-signaal-goed bg-signaal-goed-vlak text-zwart"
+                    : "border-signaal-actie bg-signaal-actie-vlak font-bold text-signaal-actie"
+                }`}
+              >
+                {t(regel.sleutel, regel.waarden)}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     </form>
   );
 }

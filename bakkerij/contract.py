@@ -227,6 +227,7 @@ def _richting(waarde: Decimal | float | None) -> str | None:
 def _ontbinding(
     *, verschil: Decimal, verschil_label: str,
     termen: list[tuple[str, Decimal, str]], toelichting: str,
+    conclusie: str | None = None,
 ) -> dict:
     """De vaste vorm van een ontbinding: één gemeten verschil, en de termen
     waarin het uiteenvalt.
@@ -245,6 +246,16 @@ def _ontbinding(
         raise ValueError(
             f"Ontbinding telt niet op: {som} tegenover {verschil}"
         )
+
+    # Het aandeel van elke term in het verschil, als percentage. "Vooral van
+    # meer klanten" is pas te zeggen als je weet dat die term 80 % van het
+    # verschil draagt; het cijfer alleen zegt dat niet. Bij een verschil van
+    # nul is er geen aandeel (delen door nul is geen oordeel).
+    def _aandeel(bedrag: Decimal) -> str | None:
+        if verschil == 0:
+            return None
+        return _pct_machine(float(bedrag) / float(abs(verschil)) * 100.0)
+
     return {
         "verschil": {
             "label": verschil_label,
@@ -253,11 +264,102 @@ def _ontbinding(
         },
         "termen": [
             {"label": label, "waarde": _s(bedrag), "uitleg": uitleg,
-             "richting": _richting(bedrag)}
+             "richting": _richting(bedrag), "aandeel": _aandeel(bedrag)}
             for label, bedrag, uitleg in termen
         ],
         "toelichting": toelichting,
+        # De zin die de lezer zoekt vóór de cijfers: wat bewoog, en hoeveel.
+        # Uit de data, nooit uit een sjabloon zonder cijfers (zie de
+        # aanroeper); None als er niets te zeggen valt.
+        "conclusie": conclusie,
     }
+
+
+def _bonritme_conclusie(rit) -> str | None:
+    """De ontbinding in één zin van gewone taal, op basis van de cijfers.
+
+    "Meer of minder klanten: + € 4.525" is een term; "de omzet per dag steeg
+    met € 5.637, vooral omdat er meer klanten kwamen (312 tegenover 240 per
+    dag); het mandje werd iets groter (€ 18,40 tegenover € 17,60)" is een
+    conclusie. De tweede is wat een lezer met weinig tijd nodig heeft, en ze
+    is alleen te maken met B0 en T0 erbij (zie `Bonritme`).
+
+    De grootste term (in absolute waarde) bepaalt het hoofdwoord. Draagt geen
+    van beide meer dan 60 % van het verschil, dan is het "ongeveer evenveel
+    door klanten als door mandje". De kruisterm blijft buiten de zin: wie
+    hem wil, leest hem in de lijst.
+    """
+    if (rit.verschil is None or rit.vorig_bonnen_per_dag is None
+            or rit.vorig_bonbedrag is None):
+        return None
+    if rit.verschil == 0:
+        return t("De omzet per dag bleef gelijk.",
+                 "Le chiffre d'affaires par jour est resté stable.")
+
+    steeg = rit.verschil > 0
+    bedrag = f"€ {abs(rit.verschil):,.0f}".replace(",", ".")
+    klanten_nu = f"{rit.bonnen_per_dag:.0f}"
+    klanten_vorig = f"{rit.vorig_bonnen_per_dag:.0f}"
+    mandje_nu = f"€ {rit.gemiddeld_bonbedrag:.2f}".replace(".", ",")
+    mandje_vorig = f"€ {rit.vorig_bonbedrag:.2f}".replace(".", ",")
+
+    kop = (
+        t(f"De omzet per dag steeg met {bedrag}.",
+          f"Le chiffre d'affaires par jour a augmenté de {bedrag}.")
+        if steeg else
+        t(f"De omzet per dag daalde met {bedrag}.",
+          f"Le chiffre d'affaires par jour a baissé de {bedrag}.")
+    )
+
+    klanten_meer = rit.bonnen_per_dag > rit.vorig_bonnen_per_dag
+    mandje_groter = rit.gemiddeld_bonbedrag > rit.vorig_bonbedrag
+    klanten_cijfers = f"({klanten_nu} tegenover {klanten_vorig} per dag)"
+    klanten_cijfers_fr = f"({klanten_nu} contre {klanten_vorig} par jour)"
+    mandje_cijfers = f"({mandje_nu} tegenover {mandje_vorig})"
+    mandje_cijfers_fr = f"({mandje_nu} contre {mandje_vorig})"
+    # Twee vormen per zinsdeel: als bijzin na "doordat" en als hoofdzin,
+    # want de Nederlandse woordvolgorde verschilt ("er meer klanten kwamen"
+    # tegenover "er kwamen meer klanten").
+    klanten_bijzin = t(
+        f"er {'meer' if klanten_meer else 'minder'} klanten kwamen {klanten_cijfers}",
+        f"il y a eu {'plus' if klanten_meer else 'moins'} de clients {klanten_cijfers_fr}",
+    )
+    klanten_hoofdzin = t(
+        f"er kwamen {'meer' if klanten_meer else 'minder'} klanten {klanten_cijfers}",
+        f"il y a eu {'plus' if klanten_meer else 'moins'} de clients {klanten_cijfers_fr}",
+    )
+    mandje_bijzin = t(
+        f"het mandje {'groter' if mandje_groter else 'kleiner'} werd {mandje_cijfers}",
+        f"le panier a {'grossi' if mandje_groter else 'rétréci'} {mandje_cijfers_fr}",
+    )
+    mandje_hoofdzin = t(
+        f"het mandje werd {'groter' if mandje_groter else 'kleiner'} {mandje_cijfers}",
+        f"le panier a {'grossi' if mandje_groter else 'rétréci'} {mandje_cijfers_fr}",
+    )
+
+    totaal = float(abs(rit.verschil))
+    deel_klanten = abs(float(rit.bonneneffect)) / totaal
+    deel_mandje = abs(float(rit.bonbedrag_effect)) / totaal
+    if deel_klanten >= 0.6 and deel_klanten >= deel_mandje:
+        return t(
+            f"{kop} Dat komt vooral doordat {klanten_bijzin}; ook "
+            f"{mandje_hoofdzin}.",
+            f"{kop} Cela vient surtout du fait qu'{klanten_bijzin} ; en outre, "
+            f"{mandje_hoofdzin}.",
+        )
+    if deel_mandje >= 0.6 and deel_mandje > deel_klanten:
+        return t(
+            f"{kop} Dat komt vooral doordat {mandje_bijzin}; ook "
+            f"{klanten_hoofdzin}.",
+            f"{kop} Cela vient surtout du fait que {mandje_bijzin} ; en outre, "
+            f"{klanten_hoofdzin}.",
+        )
+    return t(
+        f"{kop} Klanten en mandje wogen ongeveer even zwaar: {klanten_hoofdzin} "
+        f"en {mandje_hoofdzin}.",
+        f"{kop} Clients et panier ont pesé à peu près autant : {klanten_hoofdzin} "
+        f"et {mandje_hoofdzin}.",
+    )
 
 
 def _euro_as(maximum: float) -> dict:
@@ -369,6 +471,25 @@ def _cfo_dagtabel(
             ),
         })
 
+    # Dagen ná de jongste Deliveroo-export: het kanaal is er wel, maar heeft
+    # over die dagen nog niets gezegd. Geen nul (zie `berekening.cfo_dagtabel`),
+    # wel een reden — en die reden is meteen de to-do: de volgende export.
+    zonder_deliveroo = int(tabel["deliveroo"].isna().sum())
+    if zonder_deliveroo:
+        onbeschikbaar.append({
+            "veld": "cfo_dagtabel.deliveroo",
+            "reden": t(
+                f"{_dagen_nl(zonder_deliveroo)} in deze tabel vallen buiten "
+                "de geladen Deliveroo-historiek; daar blijven Deliveroo en het "
+                "totaal leeg. Te doen: de jongste Orders-export uit de Partner "
+                "Hub opladen via het scherm Deliveroo-import.",
+                f"{_dagen_nl(zonder_deliveroo)} de ce tableau tombent hors de "
+                "l'historique Deliveroo chargé ; Deliveroo et le total y "
+                "restent vides. À faire : charger le dernier export Orders du "
+                "Partner Hub via l'écran Import Deliveroo.",
+            ),
+        })
+
     return {
         "rijen": [
             {
@@ -379,16 +500,22 @@ def _cfo_dagtabel(
                 "omzet": _s(r.omzet),
                 "gemiddeld_ticket": (None if r.gemiddeld_ticket is None
                                      else _s(r.gemiddeld_ticket)),
+                "deliveroo": None if r.deliveroo is None else _s(r.deliveroo),
+                "totaal": None if r.totaal is None else _s(r.totaal),
             }
             for r in tabel.itertuples()
         ],
         "toelichting": t(
             f"De laatste {len(tabel)} gemeten open winkeldagen t/m "
-            f"{_dag_label(tot)}. Het gemiddelde ticket is de omzet van die dag "
-            "gedeeld door de klanten van diezelfde dag.",
+            f"{_dag_label(tot)}. Het gemiddelde ticket is de kassaomzet van "
+            "die dag gedeeld door de klanten van diezelfde dag. Deliveroo is "
+            "netto, na de commissie van het platform; het totaal is kassa "
+            "plus Deliveroo.",
             f"Les {len(tabel)} derniers jours d'ouverture mesurés jusqu'au "
-            f"{_dag_label(tot)}. Le ticket moyen est le chiffre d'affaires du "
-            "jour divisé par les clients du même jour.",
+            f"{_dag_label(tot)}. Le ticket moyen est le chiffre d'affaires de "
+            "caisse du jour divisé par les clients du même jour. Deliveroo "
+            "est net, après la commission de la plateforme ; le total est la "
+            "caisse plus Deliveroo.",
         ),
     }
 
@@ -482,6 +609,7 @@ def _bonritme(
                  t("Het deel dat pas ontstaat doordat de twee samen bewegen.",
                    "La part qui ne naît que du mouvement simultané des deux.")),
             ],
+            conclusie=_bonritme_conclusie(rit),
             toelichting=t(
                 f"De laatste {_dagen_nl(rit.dagen)} met gemeten verkoop t/m "
                 f"{_dag_label(tot)}, naast even veel dagen ervoor. De drie termen "
@@ -1495,6 +1623,45 @@ def overzicht(
 
 # --- kanalen ----------------------------------------------------------------
 
+#: Hoe oud de jongste Deliveroo-export mag zijn voor de dekking 'goed' blijft
+#: (7 dagen) en vanaf wanneer ze 'actie' wordt (21 dagen). Partner Hub levert
+#: exports van zestien dagen; wie om de twee weken oplaadt, blijft onder de
+#: eerste grens. Ertussen is 'let_op': de export is te doen, maar er is nog
+#: niets verloren. Voorbij de tweede grens schuift het venster van de Partner
+#: Hub (twaalf maanden) en telt Deliveroo drie weken niet mee in de totalen.
+EXPORT_VERS_DAGEN = 7
+EXPORT_LAAT_DAGEN = 21
+
+
+def _exportdekking(
+    dagtotalen: pd.DataFrame, tot: pd.Timestamp, kanaal: str,
+) -> dict | None:
+    """Tot wanneer de geladen historiek van een periodiek kanaal loopt, en
+    hoe ver dat achterligt op de kassa. Dit is de to-do voor de bakkerij:
+    het scherm toont 'export loopt tot X, volgende vanaf Y' en kleurt op de
+    status. None zolang het kanaal geen enkele rij heeft (dan zegt
+    `onbeschikbaar` waarom).
+    """
+    historiek = dagtotalen[dagtotalen["kanaal"] == kanaal]
+    if historiek.empty:
+        return None
+    laatste = pd.Timestamp(historiek["datum"].max())
+    geleden = int((pd.Timestamp(tot) - laatste).days)
+    if geleden <= EXPORT_VERS_DAGEN:
+        status = "goed"
+    elif geleden <= EXPORT_LAAT_DAGEN:
+        status = "let_op"
+    else:
+        status = "actie"
+    return {
+        "tot": _iso_datum(laatste),
+        "tot_label": _datum_nl(laatste),
+        "volgende_vanaf": _datum_nl(laatste + pd.Timedelta(days=1)),
+        "dagen_geleden": str(geleden),
+        "status": status,
+    }
+
+
 def kanalen(
     dagtotalen: pd.DataFrame,
     tot: pd.Timestamp,
@@ -1519,6 +1686,7 @@ def kanalen(
         for f in bk.kanaalfinancien(dagtotalen, kanaalkost, tot, dagen=30)
     }
     blokken, onbeschikbaar = [], []
+    dekking = {"deliveroo": _exportdekking(dagtotalen, tot, "deliveroo")}
 
     for kanaal in ("winkel", "deliveroo"):
         if kanaal not in verdeling.index:
@@ -1527,7 +1695,7 @@ def kanalen(
                 "omzet_30d": None, "aandeel": None, "stuks_30d": None,
                 "gem_dagomzet": None, "meetdagen": None, "verloop": None,
                 "bruto_30d": None, "commissie_30d": None, "netto_30d": None,
-                "inhouding_pct": None,
+                "inhouding_pct": None, "dekking": dekking.get(kanaal),
             })
             # Drie verschillende redenen, drie verschillende waarheden: de
             # aanroeper weet waarom een kanaal ontbreekt (Deliveroo), een
@@ -1602,6 +1770,7 @@ def kanalen(
             "netto_30d": _s(fin.netto) if heeft_wig else None,
             "inhouding_pct": _s(fin.inhouding_pct)
             if heeft_wig and fin.inhouding_pct is not None else None,
+            "dekking": dekking.get(kanaal),
         })
 
     return antwoord({"kanalen": blokken}, bron=bron, bijgewerkt_op=bijgewerkt_op,

@@ -151,13 +151,14 @@ def test_deliveroo_dat_ontbreekt_is_sinds_de_lading_een_let_op():
     assert uit["ergste"] == "let_op"
 
 
-def test_deliveroo_met_data_is_een_periodieke_bron_met_een_lat_van_90_dagen():
+def test_deliveroo_met_data_is_een_periodieke_bron_met_een_lat_van_21_dagen():
     """Het kanaal routeert naar `_stand_periodiek` via `ACHTER_DAGEN_PER_KANAAL`
-    en niet naar de dagelijkse tak: een jongste dag van 60 dagen oud is 'vers'
-    (binnen de lat), een van 100 dagen oud is 'achter'."""
+    en niet naar de dagelijkse tak: een jongste dag van 14 dagen oud is 'vers'
+    (binnen de lat, ver voorbij de twee dagen van de dagelijkse tak), een van
+    100 dagen oud is 'achter'."""
     tot = D(2026, 5, 10)
     winkel = _week_verkopen(tot)
-    vers = _verkopen(winkel + [_deliveroorij(D(2026, 3, 11))])
+    vers = _verkopen(winkel + [_deliveroorij(D(2026, 4, 27))])
     kal = _kalender(
         [(tot - dt.timedelta(days=i), True, True) for i in range(14)]
         + [(tot + dt.timedelta(days=i), False, False) for i in range(1, 21)]
@@ -170,7 +171,7 @@ def test_deliveroo_met_data_is_een_periodieke_bron_met_een_lat_van_90_dagen():
     uit = kw.stand(oud, kal, vandaag=D(2026, 5, 11))
     d = next(b for b in uit["bronnen"] if b["bron"] == "deliveroo")
     assert d["status"] == "achter"
-    assert "90" in d["toelichting"]
+    assert "21" in d["toelichting"]
 
 
 def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
