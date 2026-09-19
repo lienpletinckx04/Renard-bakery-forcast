@@ -848,6 +848,49 @@ def _bonnen_totalen(omzetten, start="2025-01-01"):
     return bk.dagtotalen(bk.open_verkopen(verkopen, kal))
 
 
+def test_cfo_dagtabel_toont_klanten_omzet_en_ticket_per_dag():
+    """De vorm van het weekrapport dat de opdrachtgever met de hand maakte:
+    per dag het aantal klanten, de omzet en wat ze gemiddeld afrekenden. De
+    bonnen staan over twee kassa's; de som per dag is het aantal klanten."""
+    totalen = _bonnen_totalen([100.0] * 5)
+    rijen = [(f"2025-01-{dag:02d}", "Kassa 1", 15) for dag in range(1, 6)]
+    rijen += [(f"2025-01-{dag:02d}", "Kassa 2", 5) for dag in range(1, 6)]
+    tabel = bk.cfo_dagtabel(_bonnen(rijen), totalen,
+                            pd.Timestamp("2025-01-05"), dagen=3)
+    assert list(tabel.columns) == bk.CFO_DAGTABEL_KOLOMMEN
+    # Drie dagen, oplopend: dit is een leesbare tabel en geen ranglijst.
+    assert list(tabel["datum"]) == [pd.Timestamp(f"2025-01-0{d}")
+                                    for d in (3, 4, 5)]
+    assert list(tabel["klanten"]) == [20, 20, 20]
+    assert list(tabel["omzet"]) == [Decimal("100.00")] * 3
+    assert list(tabel["gemiddeld_ticket"]) == [Decimal("5.00")] * 3
+
+
+def test_cfo_dagtabel_houdt_een_dag_zonder_bonnentelling_in_de_tabel():
+    """Het verschil met `bonritme`, en met opzet. Daar valt zo'n dag uit de
+    vergelijking omdat hij de ontbinding zou vergiftigen; hier zou weglaten
+    lezen als een dag waarop de zaak dicht was. De omzet blijft dus staan, met
+    een leeg klantenvak ernaast."""
+    totalen = _bonnen_totalen([100.0] * 3)
+    rijen = [(f"2025-01-{dag:02d}", "Kassa 1", 20) for dag in (1, 3)]
+    tabel = bk.cfo_dagtabel(_bonnen(rijen), totalen,
+                            pd.Timestamp("2025-01-03"), dagen=3)
+    assert list(tabel["omzet"]) == [Decimal("100.00")] * 3
+    assert tabel["klanten"].tolist() == [20, None, 20]
+    assert tabel["gemiddeld_ticket"].tolist() == [
+        Decimal("5.00"), None, Decimal("5.00")]
+
+
+def test_cfo_dagtabel_zonder_enige_bonnentelling_toont_nog_altijd_de_omzet():
+    """De stand van vóór de bonnen geladen waren: de tabel hoort dan niet leeg
+    te zijn, want de omzet is wél gemeten."""
+    totalen = _bonnen_totalen([100.0] * 3)
+    leeg = pd.DataFrame(columns=["datum", "filiaal_id", "bonnen"])
+    tabel = bk.cfo_dagtabel(leeg, totalen, pd.Timestamp("2025-01-03"), dagen=3)
+    assert list(tabel["omzet"]) == [Decimal("100.00")] * 3
+    assert tabel["klanten"].tolist() == [None, None, None]
+
+
 def test_bonritme_ontbindt_de_omzet_in_klanten_en_mandje():
     """Vorig venster 20 bonnen van 5, huidig 25 bonnen van 6: het verschil van
     50 per dag valt uiteen in 25 (meer klanten), 20 (groter mandje) en 5

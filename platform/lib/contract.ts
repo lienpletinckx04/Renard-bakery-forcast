@@ -300,6 +300,24 @@ export type PeriodeVenster = {
   standaard?: boolean;
 };
 
+/**
+ * Eén dag uit de CFO-dagtabel. Machinewaarden als string, zoals overal in het
+ * contract; `null` is "niet gemeten" en nooit nul. Dat onderscheid is hier de
+ * hele zaak: een dag zonder bonnentelling heeft niet nul klanten gehad, hij is
+ * niet geteld, en het scherm hoort die twee niet door elkaar te halen.
+ */
+export type CfoDag = {
+  datum: string; // kant-en-klaar daglabel, in de taal van de lezer
+  klanten: string | null;
+  omzet: string;
+  gemiddeld_ticket: string | null;
+};
+
+export type CfoDagtabelData = {
+  rijen: CfoDag[];
+  toelichting: string;
+};
+
 /* ---- per scherm ------------------------------------------------------- */
 
 export type OverzichtData = {
@@ -313,6 +331,14 @@ export type OverzichtData = {
     toelichting: string;
   };
   jaarvergelijking: Staafdata;
+  /**
+   * De dagtabel: per dag klanten, omzet en gemiddeld ticket. Anders dan
+   * `bonritme` verdwijnt deze niet zodra de bonnentelling ontbreekt -- de
+   * omzet per dag is dan nog altijd gemeten, en alleen `klanten` en
+   * `gemiddeld_ticket` blijven leeg, met de reden in `onbeschikbaar` onder
+   * `cfo_dagtabel.klanten`.
+   */
+  cfo_dagtabel: CfoDagtabelData | null;
   /**
    * De vier metrieken die over de zaak als geheel gaan. Elk mag null zijn; de
    * reden staat dan in `onbeschikbaar` onder het gelijknamige veld, en het

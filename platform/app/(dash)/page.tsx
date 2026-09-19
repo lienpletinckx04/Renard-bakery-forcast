@@ -15,7 +15,7 @@ import Staafgrafiek from "@/components/Staafgrafiek";
 import Tabel from "@/components/Tabel";
 import Toelichting from "@/components/Toelichting";
 import type { OverzichtData } from "@/lib/contract";
-import { euro, geheelGetal, procent } from "@/lib/format";
+import { aantal, euro, geheelGetal, procent } from "@/lib/format";
 import { huidigeTaal, laadContract } from "@/lib/laadContract";
 import { maakT, type T } from "@/lib/taal";
 import { reden } from "@/lib/toelichting";
@@ -74,6 +74,7 @@ export default async function OverzichtPagina() {
 
   // `?? null`: een contract van vóór deze velden is hetzelfde geval als een
   // contract dat er bewust null in zet, en krijgt dezelfde behandeling.
+  const dagtabel = antwoord.data.cfo_dagtabel ?? null;
   const bonritme = antwoord.data.bonritme ?? null;
   const weekdagmix = antwoord.data.weekdagmix ?? null;
   const maandritme = antwoord.data.maandritme ?? null;
@@ -118,6 +119,61 @@ export default async function OverzichtPagina() {
           <Microcontext items={omzetverloop_context} />
         </Kaart>
       )}
+
+      {/* De week dag per dag, in de vorm waarin de opdrachtgever zijn eigen
+          weekrapport opmaakte: klanten, omzet, gemiddeld ticket. Die stond tot
+          nu toe naast dit platform in plaats van erin.
+
+          Een dag zonder bonnentelling blijft in de tabel staan met een lege
+          klantenkolom. Weglaten zou lezen als een dag waarop de zaak dicht
+          was, en de omzet van die dag is wél gemeten. */}
+      <Blok
+        t={t}
+        onbeschikbaar={antwoord.onbeschikbaar}
+        titel={t("dag.dagtabel")}
+        veld="cfo_dagtabel"
+        inhoud={dagtabel}
+      >
+        {dagtabel ? (
+          <>
+            <Tabel
+              data={{
+                kolommen: [
+                  t("kol.dag"),
+                  t("kol.klanten"),
+                  t("kol.omzet"),
+                  t("kol.gemiddeldTicket"),
+                ],
+                uitlijning: eersteLinks(4),
+                rijen: dagtabel.rijen.map((r) => [
+                  r.datum,
+                  // Niet geteld is niet nul, en het woord ervoor komt uit
+                  // taal.ts omdat de lezer het leest. `aantal` en niet
+                  // `geheelGetal`: het klantenaantal staat als
+                  // machinewaarde-string in het contract, zoals elk cijfer
+                  // daar; `geheelGetal` is voor de paar velden die er als
+                  // `number` in staan.
+                  r.klanten === null
+                    ? t("cel.nietGeteld")
+                    : aantal(r.klanten),
+                  euro(r.omzet),
+                  r.gemiddeld_ticket === null
+                    ? t("cel.nietGeteld")
+                    : euro(r.gemiddeld_ticket),
+                ]),
+              }}
+            />
+            <p className="mt-3 max-w-prose text-xs font-light text-zwart">
+              {dagtabel.toelichting}
+            </p>
+            {reden(antwoord.onbeschikbaar, "cfo_dagtabel.klanten") ? (
+              <p className="mt-2 max-w-prose text-xs font-light text-zwart">
+                {reden(antwoord.onbeschikbaar, "cfo_dagtabel.klanten")}
+              </p>
+            ) : null}
+          </>
+        ) : null}
+      </Blok>
 
       {/* De eerste vraag na "de omzet bewoog": kwamen er minder klanten, of
           kochten dezelfde klanten minder? Twee heel verschillende problemen —

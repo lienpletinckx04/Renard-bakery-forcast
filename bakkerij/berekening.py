@@ -1275,6 +1275,89 @@ def bonritme(
     )
 
 
+# --- de CFO-dagtabel ---------------------------------------------------------
+
+
+CFO_DAGTABEL_KOLOMMEN = ["datum", "klanten", "omzet", "gemiddeld_ticket"]
+
+
+def cfo_dagtabel(
+    bonnen_df: pd.DataFrame, dagtotalen_df: pd.DataFrame, tot: pd.Timestamp,
+    *, dagen: int = 7, kanaal: str = "winkel",
+) -> pd.DataFrame:
+    """Per dag: hoeveel klanten, hoeveel omzet, en wat ze gemiddeld afrekenden.
+
+    De vorm komt van de opdrachtgever zelf. Die maakt met de hand een
+    weekrapport per winkel met precies deze kolommen (datum, klanten, omzet,
+    gemiddeld ticket) en las die tot nu toe naast dit platform in plaats van
+    erin. Dit is dat rapport, uit de gemeten data in plaats van uit een
+    spreadsheet.
+
+    WAAROM DIT NAAST `bonritme` STAAT EN ER NIET IN. `bonritme` beantwoordt één
+    vraag over een venster als geheel: kwam de verandering van de klanten of
+    van het mandje. Deze tabel beantwoordt geen vraag, ze toont de dagen. Dat
+    zijn twee verschillende dingen, en ze samenvoegen zou van beide een
+    halfslachtige versie maken.
+
+    EEN DAG ZONDER BONNENTELLING VALT NIET WEG, hij krijgt `klanten` en
+    `gemiddeld_ticket` op None. Dat is het verschil met `bonritme`, dat zulke
+    dagen bewust buiten de vergelijking houdt omdat ze de ontbinding zouden
+    vergiftigen. Hier is weglaten juist de slechtste optie: een dag met omzet
+    die uit de tabel verdwijnt, leest als een dag waarop de zaak dicht was. De
+    omzet staat er dus, met een leeg klantenvak ernaast en de reden erbij in de
+    contractlaag.
+
+    Gesorteerd op datum, oplopend: dit is een leesbare tabel en geen
+    ranglijst.
+    """
+    tot = pd.Timestamp(tot)
+    omzet_per_dag = (
+        dagtotalen_df[dagtotalen_df["kanaal"] == kanaal]
+        .groupby("datum")["omzet"].sum()
+    )
+    open_dagen = pd.DatetimeIndex(sorted(omzet_per_dag.index))
+    binnen = open_dagen[open_dagen <= tot]
+    if len(binnen) == 0:
+        return pd.DataFrame(columns=CFO_DAGTABEL_KOLOMMEN)
+
+    venster = binnen[-dagen:]
+
+    # De bonnen zijn per kassa; de som over de kassa's van één dag is het
+    # aantal klanten. De som van bonnen per product-dag zou dat NIET zijn --
+    # zie de docstring van `bonritme`.
+    bonnen = bonnen_df.copy()
+    klanten_per_dag = pd.Series(dtype="float64")
+    if not bonnen.empty:
+        bonnen["datum"] = pd.to_datetime(bonnen["datum"])
+        klanten_per_dag = bonnen.groupby("datum")["bonnen"].sum()
+
+    rijen = []
+    for dag in venster:
+        omzet = euro(float(omzet_per_dag.loc[dag]))
+        aantal = klanten_per_dag.get(dag)
+        klanten = int(aantal) if aantal is not None and aantal > 0 else None
+        rijen.append({
+            "datum": dag,
+            "klanten": klanten,
+            "omzet": omzet,
+            # Het gemiddelde ticket is de omzet gedeeld door de klanten van
+            # diezelfde dag, en niet het gemiddelde van de dagtickets: dat
+            # laatste weegt een rustige dinsdag even zwaar als een zaterdag.
+            "gemiddeld_ticket": (euro(float(omzet) / klanten)
+                                 if klanten else None),
+        })
+    tabel = pd.DataFrame(rijen, columns=CFO_DAGTABEL_KOLOMMEN)
+    # `klanten` expliciet op object, anders maakt pandas van een kolom met
+    # gehele getallen én None een float64-kolom en wordt die None een NaN. Dat
+    # is geen cosmetisch verschil: NaN is een getal, overleeft een `is None`-
+    # toets niet, en belandt als "NaN" op het scherm in plaats van als een leeg
+    # vak met een reden. De twee bedragkolommen dragen Decimals en zijn daarom
+    # al object; deze is de enige die het nodig heeft.
+    tabel["klanten"] = pd.Series([r["klanten"] for r in rijen],
+                                 dtype="object", index=tabel.index)
+    return tabel
+
+
 # --- periodeblokken (de kubus achter de periodekiezer) ------------------------
 
 

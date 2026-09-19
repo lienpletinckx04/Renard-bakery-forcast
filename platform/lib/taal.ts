@@ -134,6 +134,7 @@ const WOORDEN = {
     "Waar komt de verandering vandaan: klanten of mandje?",
     "D'où vient la variation : les clients ou le panier ?",
   ],
+  "dag.dagtabel": ["De week, dag per dag", "La semaine, jour par jour"],
   "dag.weekdag": [
     "Gemiddelde omzet per weekdag",
     "Chiffre d'affaires moyen par jour de la semaine",
@@ -824,6 +825,12 @@ const WOORDEN = {
 
   // --- kolomnamen, overal ---
   "kol.dag": ["Dag", "Jour"],
+  "kol.klanten": ["Klanten", "Clients"],
+  "kol.gemiddeldTicket": ["Gem. ticket", "Ticket moyen"],
+  // Wat er in een cel staat die niet gemeten is. Nooit een nul en nooit een
+  // streepje: "niet geteld" en "nul klanten" zijn twee verschillende dingen,
+  // en juist dat verschil is waarom deze kolom bestaat.
+  "cel.nietGeteld": ["niet geteld", "non compté"],
   "kol.feestdag": ["Feestdag", "Jour férié"],
   "kol.toestand": ["Open of dicht?", "Ouvert ou fermé ?"],
   "kol.omzet": ["Omzet", "Chiffre d'affaires"],

@@ -178,9 +178,9 @@ DATASLEUTELS = {
     "overzicht": (
         "OverzichtData",
         {
-            "afwijkende_dagen", "bonritme", "jaarvergelijking", "kerncijfers",
-            "maandritme", "omzetverloop", "omzetverloop_context", "periodes",
-            "weekdagmix", "weekdagprofiel", "weken",
+            "afwijkende_dagen", "bonritme", "cfo_dagtabel", "jaarvergelijking",
+            "kerncijfers", "maandritme", "omzetverloop", "omzetverloop_context",
+            "periodes", "weekdagmix", "weekdagprofiel", "weken",
         },
     ),
     "kanalen": ("KanalenData", {"kanalen"}),

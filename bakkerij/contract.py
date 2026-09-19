@@ -317,6 +317,82 @@ AFWIJKING_DAGEN = 90
 AFWIJKING_DREMPEL_TEKST = str(bk.AFWIJKING_DREMPEL).replace(".", ",")
 
 
+def _cfo_dagtabel(
+    bonnen: pd.DataFrame | None, dagtotalen: pd.DataFrame, tot: pd.Timestamp,
+    onbeschikbaar: list[dict],
+) -> dict | None:
+    """De dagtabel van het weekrapport: klanten, omzet, gemiddeld ticket.
+
+    De vorm komt van de opdrachtgever, die dit rapport met de hand opmaakte en
+    naast het platform legde in plaats van erin. Vandaar ook het venster van
+    zeven dagen: dat is de week waarin hij leest (zie `PERIODE_KORT_DAGEN`).
+
+    ZONDER BONNENTELLING VERDWIJNT DEZE TABEL NIET. Dat is het verschil met
+    `bonritme` hieronder, dat dan `None` teruggeeft omdat zijn hele vraag
+    -- klanten of mandje -- zonder die telling niet te stellen is. Hier is de
+    omzet per dag óók zonder bonnen een echt gemeten cijfer, en die weglaten
+    zou een scherm opleveren dat minder toont dan het weet. De klantenkolom
+    blijft dan leeg, met de reden in `onbeschikbaar`.
+    """
+    tabel = bk.cfo_dagtabel(
+        bonnen if bonnen is not None else pd.DataFrame(
+            columns=["datum", "filiaal_id", "bonnen"]),
+        dagtotalen, tot, dagen=PERIODE_KORT_DAGEN,
+    )
+    if tabel.empty:
+        onbeschikbaar.append({
+            "veld": "cfo_dagtabel",
+            "reden": t(
+                f"Geen dagtabel: er is geen gemeten open winkeldag t/m "
+                f"{_dag_label(tot)}.",
+                f"Pas de tableau journalier : aucun jour d'ouverture mesuré "
+                f"jusqu'au {_dag_label(tot)}.",
+            ),
+        })
+        return None
+
+    # `isna()` vangt de None's in deze objectkolom; een tweede toets op `== None`
+    # zou dezelfde dag een tweede keer tellen.
+    zonder_klanten = int(tabel["klanten"].isna().sum())
+    if zonder_klanten:
+        onbeschikbaar.append({
+            "veld": "cfo_dagtabel.klanten",
+            "reden": t(
+                f"{_dagen_nl(zonder_klanten)} in deze tabel dragen wél omzet "
+                "maar geen bonnentelling; daar blijft het aantal klanten en "
+                "het gemiddelde ticket leeg. De omzet van die dagen is gemeten "
+                "en blijft staan.",
+                f"{_dagen_nl(zonder_klanten)} de ce tableau portent un chiffre "
+                "d'affaires mais aucun comptage de tickets ; le nombre de "
+                "clients et le ticket moyen y restent vides. Le chiffre "
+                "d'affaires de ces jours est mesuré et reste affiché.",
+            ),
+        })
+
+    return {
+        "rijen": [
+            {
+                "datum": _dag_label(pd.Timestamp(r.datum)),
+                # Machinewaarden als string, zoals overal in het contract; de
+                # frontend rekent nooit en maakt alleen op.
+                "klanten": None if r.klanten is None else str(int(r.klanten)),
+                "omzet": _s(r.omzet),
+                "gemiddeld_ticket": (None if r.gemiddeld_ticket is None
+                                     else _s(r.gemiddeld_ticket)),
+            }
+            for r in tabel.itertuples()
+        ],
+        "toelichting": t(
+            f"De laatste {len(tabel)} gemeten open winkeldagen t/m "
+            f"{_dag_label(tot)}. Het gemiddelde ticket is de omzet van die dag "
+            "gedeeld door de klanten van diezelfde dag.",
+            f"Les {len(tabel)} derniers jours d'ouverture mesurés jusqu'au "
+            f"{_dag_label(tot)}. Le ticket moyen est le chiffre d'affaires du "
+            "jour divisé par les clients du même jour.",
+        ),
+    }
+
+
 def _bonritme(
     bonnen: pd.DataFrame | None, dagtotalen: pd.DataFrame, tot: pd.Timestamp,
     onbeschikbaar: list[dict],
@@ -1403,6 +1479,7 @@ def overzicht(
             "jaarvergelijking": {"reeksen": reeksen, "y_as": _euro_as(max_maand)},
             # De vier CFO-metrieken die over de zaak als geheel gaan. Elk mag
             # None zijn; de reden staat dan in `onbeschikbaar`.
+            "cfo_dagtabel": _cfo_dagtabel(bonnen, dagtotalen, tot, onbeschikbaar),
             "bonritme": _bonritme(bonnen, dagtotalen, tot, onbeschikbaar),
             "weekdagmix": _weekdagmix(dagtotalen, tot, onbeschikbaar),
             "weken": _weken(dagtotalen, kalender, tot, onbeschikbaar),
