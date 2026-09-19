@@ -188,6 +188,12 @@ def _briefings(*, open_verkopen, dagtotalen, groepen, kalender, verkopen,
             afwijkende=bk.afwijkende_dagen(dagtotalen, tot),
             bonritme=(bk.bonritme(bonnen, dagtotalen, tot)
                       if bonnen is not None else None),
+            # Hetzelfde venster als het dagtabelblok op het scherm: een punt
+            # dat over "het weekend" spreekt, hoort over dezelfde dagen te
+            # gaan als de tabel eronder.
+            dagtabel=(bk.cfo_dagtabel(bonnen, dagtotalen, tot,
+                                      dagen=ct.PERIODE_KORT_DAGEN)
+                      if bonnen is not None else None),
         ).als_dict(),
         "kanalen": bf.kanalen(
             versheid=versheid, bronstanden=bronstanden,

@@ -24,12 +24,94 @@ import pytest
 
 from bakkerij import briefing as bf
 from bakkerij import taal as tl
-from bakkerij.berekening import Bonritme, Margebeeld, Periodecontext, Verschuiving
+from bakkerij.berekening import (
+    CFO_DAGTABEL_KOLOMMEN,
+    Bonritme,
+    Margebeeld,
+    Periodecontext,
+    Verschuiving,
+)
 from bakkerij.canoniek import Meetgat, Prognosevenster, Sluitingsstand
 from bakkerij.kwaliteit import Bronstand, Wachter
 
 VANDAAG = dt.date(2026, 8, 15)
 GEMETEN_TOT = dt.date(2026, 8, 14)
+
+
+def _dagtabel(rijen) -> pd.DataFrame:
+    """rijen: (datum, klanten, omzet). Zelfde vorm als cfo_dagtabel levert;
+    het ticket is omzet/klanten, zoals daar. `klanten` expliciet op object,
+    om dezelfde reden als in de berekeningslaag: None mag geen NaN worden."""
+    uit = []
+    for datum, klanten, omzet in rijen:
+        omzet_d = Decimal(str(omzet)).quantize(Decimal("0.01"))
+        uit.append({
+            "datum": pd.Timestamp(datum),
+            "klanten": klanten,
+            "omzet": omzet_d,
+            "gemiddeld_ticket": (
+                (omzet_d / klanten).quantize(Decimal("0.01"))
+                if klanten else None
+            ),
+        })
+    tabel = pd.DataFrame(uit, columns=CFO_DAGTABEL_KOLOMMEN)
+    tabel["klanten"] = pd.Series([r["klanten"] for r in uit], dtype="object",
+                                 index=tabel.index)
+    return tabel
+
+
+# 12 en 13 september 2026 zijn zaterdag en zondag; 14 t/m 18 ma t/m vr.
+_WEEKDAGEN = [f"2026-09-{d}" for d in range(14, 19)]
+_WEEKEND = ["2026-09-12", "2026-09-13"]
+
+
+def test_weekendkorf_verschijnt_als_het_weekendticket_duidelijk_hoger_ligt():
+    """Weekdagen 10,00 per klant, weekend 13,00: dertig procent meer per
+    bezoek. De vaststelling die de opdrachtgever met de hand deed en die het
+    scherm nu zelf hoort te doen, elke week opnieuw."""
+    tabel = _dagtabel([(d, 100, 1000.0) for d in _WEEKDAGEN]
+                      + [(d, 100, 1300.0) for d in _WEEKEND])
+    briefing = bf.overzicht(versheid=_versheid(), periode=None,
+                            afwijkende=None, bonritme=None, dagtabel=tabel)
+    punt = next((p for p in briefing.punten if "weekendkorf" in p.kop.lower()),
+                None)
+    assert punt is not None, [p.kop for p in briefing.punten]
+    assert punt.status == "goed"
+    assert punt.soort == "verschil"
+    assert punt.richting == "op"
+    assert punt.bedrag == "30.0"
+    # De reden draagt het percentage als proza en géén machinewaarde: een
+    # eurobedrag als "13.00" midden in een zin kan de UI niet opmaken, en dat
+    # is precies de vormregel uit de kop van dit bestand.
+    assert "meer" in punt.waarom
+    assert "13.00" not in punt.waarom and "10.00" not in punt.waarom
+
+
+def test_weekendkorf_zwijgt_onder_de_drempel():
+    """Vijf procent is dagelijkse ruis, geen patroon: geen punt, en dat is de
+    normale toestand (harde regel 8: stilte is geen geruststelling)."""
+    tabel = _dagtabel([(d, 100, 1000.0) for d in _WEEKDAGEN]
+                      + [(d, 100, 1050.0) for d in _WEEKEND])
+    briefing = bf.overzicht(versheid=_versheid(), periode=None,
+                            afwijkende=None, bonritme=None, dagtabel=tabel)
+    assert not any("weekendkorf" in p.kop.lower() for p in briefing.punten)
+
+
+def test_weekendkorf_zwijgt_zonder_bonnentelling():
+    """Zonder klanten is er geen ticket. Een omzetvergelijking zou alleen
+    zeggen dat het weekend drukker is, en dat weet elke bakker al."""
+    tabel = _dagtabel([(d, None, 1000.0) for d in _WEEKDAGEN]
+                      + [(d, None, 1300.0) for d in _WEEKEND])
+    briefing = bf.overzicht(versheid=_versheid(), periode=None,
+                            afwijkende=None, bonritme=None, dagtabel=tabel)
+    assert not any("weekendkorf" in p.kop.lower() for p in briefing.punten)
+
+
+def test_weekendkorf_zwijgt_zonder_weekenddag_in_het_venster():
+    tabel = _dagtabel([(d, 100, 1000.0) for d in _WEEKDAGEN])
+    briefing = bf.overzicht(versheid=_versheid(), periode=None,
+                            afwijkende=None, bonritme=None, dagtabel=tabel)
+    assert not any("weekendkorf" in p.kop.lower() for p in briefing.punten)
 
 
 def _versheid(**kw) -> bf.Versheid:

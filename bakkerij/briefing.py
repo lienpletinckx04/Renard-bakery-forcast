@@ -110,6 +110,18 @@ OMZETSCHUIF_PCT = Decimal("10.0")
 #: bedoeling — het scherm zelf toont de vijf grootste stijgers en dalers al.
 PRODUCTSCHUIF_AANDEEL = Decimal("0.02")
 
+#: Zoveel procent moet het gemiddelde ticket in het weekend boven dat van de
+#: weekdagen liggen voor de briefing het een weekendkorf noemt. GEKOZEN. De
+#: opdrachtgever stelde dit met de hand vast in zijn eigen weekrapport ("de
+#: weekendkorf ligt duidelijk hoger dan op gewone weekdagen") en dat is de
+#: uitspraak die dit punt overneemt: niet dat het weekend drukker is (dat weet
+#: elke bakker) maar dat de klant er méér per keer koopt. Vijftien procent is
+#: ruim boven de dagelijkse ruis van het ticket en onder wat op de gemeten
+#: weken werkelijk voorkomt (zaterdag en zondag lagen 25 tot 40 procent boven
+#: de weekdagen), zodat het punt verschijnt zolang het patroon er is en
+#: verdwijnt zodra het weekend een gewone dag wordt.
+WEEKENDKORF_PCT = Decimal("15.0")
+
 #: Onder deze dekking meldt de briefing dat een deel van de omzet buiten de
 #: marge valt, en onder de tweede drempel wordt het 'actie'. GEKOZEN. Bij een
 #: dekking van 80% weegt het gewogen margepercentage nog over het overgrote
@@ -734,14 +746,99 @@ def _bronpunt(stand: Bronstand, vandaag: dt.date) -> BriefingPunt | None:
 # --- Dagoverzicht -----------------------------------------------------------
 
 
+def _weekendpunt(dagtabel: pd.DataFrame | None) -> BriefingPunt | None:
+    """De weekendkorf: koopt de klant in het weekend méér per keer?
+
+    Leest de CFO-dagtabel (`berekening.cfo_dagtabel`): per dag klanten, omzet
+    en gemiddeld ticket. Vergelijkt het ticket van zaterdag en zondag met dat
+    van de weekdagen, allebei als omzet gedeeld door klanten over de dagen
+    heen -- en niet als gemiddelde van de dagtickets, want dat weegt een stille
+    dinsdag even zwaar als een volle zaterdag.
+
+    Dit punt neemt letterlijk een vaststelling over die de opdrachtgever met
+    de hand deed in zijn eigen weekrapport. Dat is de bedoeling: wat een mens
+    er zelf uithaalt, hoort het scherm er ook uit te halen, elke week opnieuw
+    en zonder dat iemand het hoeft te tellen.
+
+    Geen punt zonder bonnentelling: zonder klanten is er geen ticket, en een
+    omzetvergelijking weekend/weekdag zou alleen zeggen dat het weekend drukker
+    is. Dat weet elke bakker. Geen punt evenmin als een van beide groepen geen
+    dag telt, of als het verschil onder `WEEKENDKORF_PCT` blijft: dan is er
+    niets opvallends, en dat is de normale toestand.
+    """
+    if dagtabel is None or dagtabel.empty:
+        return None
+    geteld = dagtabel[dagtabel["klanten"].notna()]
+    if geteld.empty:
+        return None
+    dagen = pd.to_datetime(geteld["datum"])
+    weekend = geteld[dagen.dt.dayofweek >= 5]
+    weekdag = geteld[dagen.dt.dayofweek < 5]
+    if weekend.empty or weekdag.empty:
+        return None
+
+    def _ticket(deel: pd.DataFrame) -> Decimal:
+        omzet = sum((Decimal(str(o)) for o in deel["omzet"]), Decimal(0))
+        klanten = sum(int(k) for k in deel["klanten"])
+        return (omzet / klanten).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    t_weekend, t_weekdag = _ticket(weekend), _ticket(weekdag)
+    if t_weekdag == 0:
+        return None
+    verschil_pct = ((t_weekend - t_weekdag) / t_weekdag * 100).quantize(
+        Decimal("0.1"), rounding=ROUND_HALF_UP
+    )
+    if verschil_pct < WEEKENDKORF_PCT:
+        return None
+
+    return BriefingPunt(
+        kop=t(
+            "De weekendkorf ligt duidelijk hoger dan op weekdagen",
+            "Le panier du week-end est nettement plus garni qu'en semaine",
+        ),
+        # Geen eurobedragen in de lopende tekst: `_euro` levert een
+        # machinewaarde ("13.00") en die kan de UI midden in een zin niet
+        # opmaken -- een Franse lezer zou er een punt-decimaal zien. Het
+        # percentage mag wél, via `_procent_tekst`, dat voor proza bedoeld is.
+        # De twee tickets zelf staan in de dagtabel direct onder dit punt.
+        waarom=t(
+            f"In het weekend rekent een klant per bezoek "
+            f"{_procent_tekst(float(verschil_pct) / 100)} meer af dan op een "
+            f"gewone weekdag. Gemeten over {_dagen(len(weekend))} in het "
+            f"weekend en {_dagen(len(weekdag))} doordeweeks, als omzet gedeeld "
+            "door klanten over die dagen heen. Het weekend is dus niet alleen "
+            "drukker: de klant koopt er ook meer per keer. De tickets per dag "
+            "staan in de tabel hieronder.",
+            f"Le week-end, un client dépense par visite "
+            f"{_procent_tekst(float(verschil_pct) / 100)} de plus qu'un jour "
+            f"de semaine. Mesuré sur {_dagen(len(weekend))} de week-end et "
+            f"{_dagen(len(weekdag))} en semaine, comme chiffre d'affaires "
+            "divisé par clients sur ces jours. Le week-end n'est donc pas "
+            "seulement plus fréquenté : le client y achète aussi davantage. "
+            "Les tickets par jour figurent dans le tableau ci-dessous.",
+        ),
+        bedrag=str(verschil_pct),
+        soort="verschil",
+        richting="op",
+        status="goed",
+    )
+
+
 def overzicht(
     *,
     versheid: Versheid,
     periode: Periodecontext | None,
     afwijkende: pd.DataFrame | None,
     bonritme: Bonritme | None,
+    dagtabel: pd.DataFrame | None = None,
 ) -> Briefing:
     """De briefing boven het Dagoverzicht.
+
+    `dagtabel` is `berekening.cfo_dagtabel(...)` of None, en voedt de punten
+    die een mens uit het weekrapport haalt (vandaag: de weekendkorf, zie
+    `_weekendpunt`). Optioneel met None als standaard, zodat elke bestaande
+    aanroeper ongewijzigd blijft werken en er alleen een punt bijkomt waar de
+    tabel ook echt wordt meegegeven.
 
     `periode` is `berekening.periodecontext(...)` over het venster dat het
     scherm toont (30 gemeten open dagen). None betekent "niet aangeleverd" en
@@ -917,6 +1014,10 @@ def overzicht(
                 status="let_op",
             )
         )
+
+    weekend = _weekendpunt(dagtabel)
+    if weekend is not None:
+        punten.append(weekend)
 
     return _bundel(punten)
 
