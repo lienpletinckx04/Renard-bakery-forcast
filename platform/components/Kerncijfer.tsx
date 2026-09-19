@@ -1,15 +1,23 @@
 import type { KerncijferData } from "@/lib/contract";
 import { aantal, euro, verschilProcent } from "@/lib/format";
+import { richtingKleur } from "@/lib/signaal";
 import type { T } from "@/lib/taal";
 
 /**
  * Label in wijd gespatieerde kapitalen, groot getal, verschil met pijl.
- * Richting komt uit het teken en de pijl, nooit uit kleur.
+ *
+ * HET VERSCHIL DRAAGT SINDS 18 SEPTEMBER 2026 KLEUR, het grote getal niet.
+ * De opdrachtgever wil in één blik zien of het goed of slecht gaat; dit is de
+ * eerste rij op het scherm, dus hier hoort dat oordeel. Het getal zelf blijft
+ * zwart -- dat was een aparte regel met een eigen reden (globals.css) -- en de
+ * pijl en het teken blijven staan: kleur komt erbij, nooit in de plaats.
  *
  * De accentvariant is een effen bordeaux vlak met witte cijfers, naar de
  * flyer uit de logogids. Dat vlak is identiteit en nooit betekenis: het
  * accent ligt vast op het eerste kerncijfer en verhuist niet met goed of
- * slecht nieuws mee.
+ * slecht nieuws mee. OP DAT VLAK KRIJGT HET VERSCHIL GÉÉN KLEUR: groen of
+ * rood op bordeaux is onleesbaar, en een signaalkleur die niet te lezen is,
+ * is erger dan geen. Daar dragen pijl en teken het alleen, zoals voorheen.
  */
 export default function Kerncijfer({
   cijfer,
@@ -51,14 +59,18 @@ export default function Kerncijfer({
               stijgingspijl bij een daling. Het teken komt uit format.ts en
               staat er hoe dan ook; de pijl is versterking, en een versterking
               die de verkeerde kant op wijst is erger dan geen pijl. */}
-          {cijfer.richting ? (
-            <>
-              <span aria-hidden="true">
-                {cijfer.richting === "neer" ? "↓" : "↑"}
-              </span>{" "}
-            </>
-          ) : null}
-          {verschilProcent(cijfer.verschil)}{" "}
+          <span
+            className={`font-semibold ${accent ? "" : richtingKleur(cijfer.richting)}`}
+          >
+            {cijfer.richting ? (
+              <>
+                <span aria-hidden="true">
+                  {cijfer.richting === "neer" ? "↓" : "↑"}
+                </span>{" "}
+              </>
+            ) : null}
+            {verschilProcent(cijfer.verschil)}
+          </span>{" "}
           {/* Dit is een label, geen cijfer: op het bordeaux vlak dus beige,
               zoals het kop-label hierboven (huisstijl-verfijning 12 aug). */}
           <span className={`font-light ${label}`}>{t("algemeen.tovVorigJaar")}</span>

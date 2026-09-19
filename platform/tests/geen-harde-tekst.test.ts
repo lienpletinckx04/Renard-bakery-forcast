@@ -53,6 +53,12 @@ const OVERGESLAGEN = new Set([
   "lib/stand.ts", // de statuswoorden, per taal naast elkaar
   "lib/format.ts", // de maandnamen per taal; verder alleen stringbewerking
   "lib/contract.ts", // alleen types: elke string is een contractmachinewaarde
+  // De kleurtabel per richting en status: de sleutels zijn dezelfde
+  // contractmachinewaarden als in lib/contract.ts ("op", "neer", "goed",
+  // "let_op", "actie"), de waarden zijn Tailwind-klassen. Geen woord ervan
+  // bereikt een scherm; het woord dat de lezer ziet komt uit `statuswoord`
+  // in het contract, in de taal van de lezer.
+  "lib/signaal.ts",
   "lib/auth.ts", // werpt/logt beheerdersfouten (env-configuratie); geen schermtekst
   "lib/auth-supabase.ts", // idem: configuratie- en bereikbaarheidsfouten voor de log
   "lib/laadContract.ts", // werpt beheerdersfouten ("draai make contract"); geen schermtekst

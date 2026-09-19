@@ -1,6 +1,7 @@
 import MeerInfo from "@/components/MeerInfo";
 import type { Ontbinding as OntbindingData } from "@/lib/contract";
 import { euro } from "@/lib/format";
+import { richtingKleur } from "@/lib/signaal";
 
 /**
  * Een gemeten verschil en de termen waarin het uiteenvalt, als leesbare brug:
@@ -10,12 +11,18 @@ import { euro } from "@/lib/format";
  *
  * Hier wordt niets opgeteld en niets berekend. Elk bedrag, elk label en elke
  * uitleg komt kant-en-klaar uit het contract; deze component maakt alleen op.
- * Richting komt uit het teken en de pijl, nooit uit kleur — alle cijfers staan
- * in zwart, ook de dalingen.
+ * Elke term en het verschil dragen sinds 18 september 2026 de signaalkleur
+ * van hun richting, naast pijl en teken (lib/signaal.ts). Een term zonder
+ * richting blijft zwart: nul is geen oordeel.
  */
 function Pijl({ richting }: { richting: "op" | "neer" | null }) {
   if (richting === null) return null;
   return <span aria-hidden="true">{richting === "neer" ? "↓ " : "↑ "}</span>;
+}
+
+/** De tekstkleur van een bedrag met richting; zwart zonder richting. */
+function inkt(richting: "op" | "neer" | null): string {
+  return richtingKleur(richting) || "text-zwart";
 }
 
 export default function Ontbinding({
@@ -47,7 +54,9 @@ export default function Ontbinding({
                 {term.uitleg}
               </p>
             </div>
-            <span className="shrink-0 text-sm font-medium whitespace-nowrap text-zwart tabular-nums">
+            <span
+              className={`shrink-0 text-sm font-medium whitespace-nowrap tabular-nums ${inkt(term.richting)}`}
+            >
               <Pijl richting={term.richting} />
               {euro(term.waarde)}
             </span>
@@ -59,7 +68,9 @@ export default function Ontbinding({
         <span className="text-sm font-medium text-zwart">
           {data.verschil.label}
         </span>
-        <span className="shrink-0 text-base font-semibold whitespace-nowrap text-zwart tabular-nums">
+        <span
+          className={`shrink-0 text-base font-semibold whitespace-nowrap tabular-nums ${inkt(data.verschil.richting)}`}
+        >
           <Pijl richting={data.verschil.richting} />
           {euro(data.verschil.waarde)}
         </span>

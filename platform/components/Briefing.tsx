@@ -1,5 +1,6 @@
 import { allesGedeeld, bedragTekst, ONBEKEND, opVolgorde } from "@/lib/briefing";
 import type { Briefing as BriefingInhoud, BriefingPunt } from "@/lib/contract";
+import { richtingKleur, STATUSKLEUR, STATUSLIJN } from "@/lib/signaal";
 
 /**
  * De briefing bovenaan een scherm: een handvol punten die zeggen wat er
@@ -53,24 +54,29 @@ import type { Briefing as BriefingInhoud, BriefingPunt } from "@/lib/contract";
  * ladder en blijft de drager voor wie geen kleur ziet; de kleur is de snelle
  * herkenning voor wie wel kijkt. `goed` krijgt 1px en niet 2px: wat goed gaat
  * hoort niet even hard te roepen als wat actie vraagt, ook niet in het groen.
+ * De kleurtokens komen uit lib/signaal.ts, dezelfde als op de kerncijfers.
  */
 const LIJN: Record<BriefingPunt["status"], string> = {
-  actie: "border-l-2 border-signaal-actie pl-5",
-  let_op: "border-l border-signaal-letop pl-4",
-  goed: "border-l border-signaal-goed pl-4",
+  actie: `border-l-2 ${STATUSLIJN.actie} pl-5`,
+  let_op: `border-l ${STATUSLIJN.let_op} pl-4`,
+  goed: `border-l ${STATUSLIJN.goed} pl-4`,
 };
 
-/** Het statuswoord in dezelfde signaalkleur als de lijn ernaast. */
-const WOORDKLEUR: Record<BriefingPunt["status"], string> = {
-  actie: "text-signaal-actie",
-  let_op: "text-signaal-letop",
-  goed: "text-signaal-goed",
-};
-
-const GEWICHT: Record<BriefingPunt["status"], string> = {
-  actie: "font-semibold",
-  let_op: "font-medium",
-  goed: "font-light",
+/**
+ * Het statuswoord: gewicht én maat per status, in de signaalkleur.
+ *
+ * DE MAAT IS OP 19 SEPTEMBER 2026 OMHOOG GEGAAN, van 11px voor alle drie naar
+ * een ladder van 13, 12 en 11. De opdrachtgever zei het scherp: "nu is alles
+ * mooi maar niet scanbaar". Op 11px is het statuswoord iets voor wie leest;
+ * een ondernemer met twee minuten scant, en die moet "ACTIE NODIG" in het
+ * rood als eerste zien, vóór de kop. Het bedrag rechts blijft op één maat,
+ * om dezelfde reden als voorheen: een kolom cijfers die niet meer uitlijnt,
+ * leest slechter dan een die dat wel doet.
+ */
+const WOORD: Record<BriefingPunt["status"], string> = {
+  actie: `text-[0.8125rem] font-bold ${STATUSKLEUR.actie}`,
+  let_op: `text-[0.75rem] font-semibold ${STATUSKLEUR.let_op}`,
+  goed: `text-[0.6875rem] font-medium ${STATUSKLEUR.goed}`,
 };
 
 /** De maat en het gewicht van de kop; de zichtbaarste trap van de ladder. */
@@ -171,9 +177,9 @@ export default function Briefing({
                     en juist het gewicht is hier het verschil tussen de drie
                     statussen. */}
                 <span
-                  className={`block text-[0.6875rem] uppercase tracking-[0.14em] ${
-                    GEWICHT[punt.status] ?? GEWICHT[ONBEKEND]
-                  } ${WOORDKLEUR[punt.status] ?? WOORDKLEUR[ONBEKEND]}`}
+                  className={`block uppercase tracking-[0.14em] ${
+                    WOORD[punt.status] ?? WOORD[ONBEKEND]
+                  }`}
                 >
                   {punt.statuswoord}
                 </span>
@@ -191,11 +197,18 @@ export default function Briefing({
                 </p>
               ) : null}
             </div>
-            {/* Het cijfer staat in zwart, rechts, met cijferbreedtes die over
-                de punten heen uitlijnen. Richting komt uit de pijl en uit het
-                teken dat format.ts zet. */}
+            {/* Het cijfer rechts, met cijferbreedtes die over de punten heen
+                uitlijnen. Een verschil draagt de kleur van zijn richting
+                (lib/signaal.ts), een bedrag of aantal blijft zwart; de pijl en
+                het teken uit format.ts staan er hoe dan ook. */}
             {punt.bedrag !== null ? (
-              <p className="text-sm font-medium whitespace-nowrap text-zwart tabular-nums">
+              <p
+                className={`text-sm font-medium whitespace-nowrap tabular-nums ${
+                  punt.soort === "verschil"
+                    ? richtingKleur(punt.richting) || "text-zwart"
+                    : "text-zwart"
+                }`}
+              >
                 {punt.richting ? (
                   <span aria-hidden="true">
                     {punt.richting === "neer" ? "↓ " : "↑ "}
