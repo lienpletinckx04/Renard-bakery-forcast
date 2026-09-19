@@ -2,11 +2,22 @@
   "winkels": [
     {
       "naam": "Elsene",
-      "filialen": ["Ixelles Kassa 1", "Ixelles Kassa 2", "Ixelles Kassa 3"]
+      "filialen": [
+        "Ixelles Kassa 1",
+        "Ixelles Kassa 2",
+        "Ixelles Kassa 3",
+        "Renard Bakery",
+        "Renard Bakery Ixelles"
+      ]
     },
     {
       "naam": "Ukkel",
-      "filialen": ["Uccle Kassa 1", "Uccle Kassa 2", "Uccle Kassa 3"]
+      "filialen": [
+        "Uccle Kassa 1",
+        "Uccle Kassa 2",
+        "Uccle Kassa 3",
+        "Renard Bakery Uccle"
+      ]
     }
   ]
 }

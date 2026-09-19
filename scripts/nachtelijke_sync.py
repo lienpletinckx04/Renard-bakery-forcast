@@ -15,6 +15,9 @@ De ketting hergebruikt de bestaande stappen en voegt er niets aan toe:
                       en geen gedeeltelijk extract)
     2. extract        scripts/odoo_extract.py --vanaf 2025-01-01
     2b. bonnen        scripts/odoo_bonnen.py --vanaf 2025-01-02 (zie hieronder)
+    2c. postbus       scripts/uploads_verwerk.py --haal: de Deliveroo-exports
+                      die via /deliveroo opgeladen zijn, naar data/raw/postbus/
+                      (ophalen, niet afvinken -- zie STAPPEN)
     3. canoniek       scripts/canoniek_bouw.py
     4. laden          scripts/db_laad.py (COPY + insert-on-conflict, dus
                       idempotent: twee keer draaien is één keer draaien)
@@ -78,6 +81,14 @@ STAPPEN = [
     # deze stap komt dichten. 2 januari en niet 1 januari: nieuwjaarsdag is
     # gesloten en telt geen bonnen (zie odoo_bonnen.py).
     ("bonnen", [PY, "scripts/odoo_bonnen.py", "--vanaf", "2025-01-02"]),
+    # De postbus leegkijken, niet leegmaken: `--haal` schrijft elke wachtende
+    # oplading naar data/raw/postbus/ en vinkt níets af. Dat is opzet. De
+    # runner heeft geen schijf die iets onthoudt, dus de postbus is voor
+    # Deliveroo de enige bron én het archief; elke nacht haalt de ketting de
+    # hele historiek opnieuw op en bouwt canoniek_verkopen.csv van nul. Zou
+    # een lezer de rijen afvinken, dan zou de tweede nacht zonder Deliveroo
+    # bouwen. Zie docs/beslissingen.md, 19 september 2026.
+    ("uploads ophalen", [PY, "scripts/uploads_verwerk.py", "--haal"]),
     ("canoniek", [PY, "scripts/canoniek_bouw.py"]),
     ("laden", [PY, "scripts/db_laad.py"]),
     ("contract", [PY, "scripts/contract_bouw.py"]),

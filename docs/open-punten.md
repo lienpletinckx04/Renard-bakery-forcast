@@ -21,7 +21,7 @@ De actuele blokkadelijst staat in `todo.md` (de S-nummers); dit document draagt 
 | # | Punt | Bij wie | Wat er stilvalt |
 |---|---|---|---|
 | O1 | ~~**Supabase-project** (EU-regio, projectsleutels). Poort G7~~ | ✅ **binnen 14 aug** (eu-north-1, Stockholm) | Wat rest is S11: zonder het databasewachtwoord blijft de gehoste route droog |
-| O2 | **Deliveroo-historiek** uit Partner Hub, 12 maanden in blokken van 90 dagen | Sophie, zelf te downloaden | Het hele kanaal Deliveroo. **En het venster schuift dagelijks op: wat eruit valt is permanent weg.** Dit is het enige punt op deze lijst waar uitstel onherstelbaar is |
+| ~~O2~~ | ~~**Deliveroo-historiek** uit Partner Hub, 12 maanden in blokken van 90 dagen~~ | ✅ **Binnen op 18 sep 2026, geladen op 19 sep.** 23 downloads (Orders én Items Sold), 3 sep 2025 t/m 2 sep 2026, aaneengesloten. Eén echt gat: 25 jan t/m 9 feb 2026 heeft geen Orders-bestand, en dat venster is uit Partner Hub geschoven. Het kanaal staat in de database via de postbus; zie `beslissingen.md` 19 sep voor wat er nog openstaat (bedragen in het weekrapport, productmix, zomersluiting) | — |
 | O3 | ~~**Vercel-toegang**~~ | ✅ **binnen 13 aug** | — |
 | O4 | **Odoo-productielicentie** (G6) en of de preprod meesynchroniseert (G5) | eindklant / Idealis | Oplevering op echte, dagverse data. Vandaag draaien we op een extract van 12 augustus |
 

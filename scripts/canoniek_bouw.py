@@ -270,13 +270,41 @@ KANAALKOST_KOLOMMEN = ["kanaal", "maand", "stuks", "bruto_per_stuk",
                        "commissie_per_stuk", "inhouding_pct"]
 
 
+#: Waar de Deliveroo Orders-exports liggen, op twee soorten machines:
+#:   * de werkplek: `data/raw/Deliveroo/<bereik>/orders.csv`, de mapconventie
+#:     uit deliveroo_parse.py;
+#:   * de runner: `data/raw/postbus/deliveroo/`, waar `make uploads-haal` de
+#:     bestanden neerzet die een beheerder via /deliveroo opgeladen heeft. De
+#:     runner heeft geen schijf die iets onthoudt, dus de postbus in de
+#:     database is daar de enige bron -- en meteen het archief van een
+#:     historiek die Partner Hub na twaalf maanden niet meer geeft.
+#: Beide worden gelezen; ontdubbelen gebeurt in `laad_deliveroo_orders`.
+DELIVEROO_PATRONEN = (
+    (RAW / "Deliveroo", "*/orders.csv"),
+    # `.csv*` en niet `.csv`: de postbus mag een export ook gecomprimeerd
+    # dragen (`.csv.gz`), zie canoniek._lees_tekst.
+    (RAW / "postbus" / "deliveroo", "*orders*.csv*"),
+)
+
+
+def verzamel_deliveroo_orders() -> list[Path]:
+    paden: list[Path] = []
+    for map_, patroon in DELIVEROO_PATRONEN:
+        paden.extend(sorted(map_.glob(patroon)))
+    return paden
+
+
 def main() -> int:
     laad_env()
     winkel_pad = laatste("*_odoo_verkopen_*.csv", RAW)
-    kanaalkost = pd.DataFrame(columns=KANAALKOST_KOLOMMEN)
 
     winkel = canoniek.laad_winkel(winkel_pad)
-    verkopen = canoniek.bouw_verkopen(winkel)
+    deliveroo_paden = verzamel_deliveroo_orders()
+    orders = canoniek.laad_deliveroo_orders(deliveroo_paden)
+    deliveroo = canoniek.orders_naar_canoniek(orders)
+    kanaalkost = (canoniek.kanaalkost_deliveroo(orders) if orders
+                  else pd.DataFrame(columns=KANAALKOST_KOLOMMEN))
+    verkopen = canoniek.bouw_verkopen(winkel, deliveroo)
     kal = canoniek.bouw_kalender(verkopen)
     kal = verwerk_agenda(kal)
     kal = verwerk_sluitingen(kal)
@@ -306,6 +334,9 @@ def main() -> int:
     print("CANONIEK DATAMODEL")
     print("=" * 64)
     print(f"bron winkel : {winkel_pad.name}")
+    print(f"deliveroo   : {len(orders):,} bestellingen uit "
+          f"{len(deliveroo_paden)} export(s), {len(deliveroo):,} dagrijen, "
+          f"{len(kanaalkost)} maand(en) kanaalkost")
     print(f"verkopen    : {len(verkopen):,} rijen -> canoniek_verkopen.csv")
     for s in canoniek.kanaalstatus(verkopen):
         if s["beschikbaar"]:

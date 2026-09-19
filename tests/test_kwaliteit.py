@@ -25,6 +25,13 @@ def _winkelrij(datum, omzet=100.0, product="7"):
     return (datum, "Kassa 1", product, "Brood", "winkel", 5.0, omzet)
 
 
+def _deliveroorij(datum, omzet=8.0):
+    """Eén dagrij Deliveroo, in de vorm die `orders_naar_canoniek` maakt:
+    één synthetisch product per vestiging per dag."""
+    return (datum, "Renard Bakery", "dl-bestellingen", "Deliveroo-bestellingen",
+            "deliveroo", 2.0, omzet)
+
+
 def _kalender(dagen):
     return pd.DataFrame(dagen, columns=["datum", "winkel_gemeten", "winkel_open"])
 
@@ -125,11 +132,13 @@ def test_ongemeten_dagen_die_geen_sluiting_verklaart_blijven_achter():
     assert standen["odoo-kassa"].status == "achter"
 
 
-def test_deliveroo_ontbreekt_met_reden_maar_zonder_alarm():
+def test_deliveroo_dat_ontbreekt_is_sinds_de_lading_een_let_op():
+    """Tot 19 september 2026 stond Deliveroo in `BEKEND_AFWEZIG` en telde een
+    ontbrekend kanaal niet mee in 'ergste': de bron was er nog nooit geweest.
+    Sinds de historiek geladen is, is een lege Deliveroo geen bekende
+    afwezigheid meer maar verdwenen data -- en dat hoort de stand te melden.
+    De reden blijft die van Partner Hub: dáár komt het kanaal vandaan."""
     tot = D(2026, 5, 10)
-    # Een kalender die ver genoeg vooruitloopt, anders geeft de
-    # kalenderdekking terecht een let_op en meet deze test niet wat hij wil
-    # meten (deliveroo alleen).
     verkopen = _verkopen(_week_verkopen(tot))
     kal = _kalender(
         [(tot - dt.timedelta(days=i), True, True) for i in range(14)]
@@ -139,7 +148,29 @@ def test_deliveroo_ontbreekt_met_reden_maar_zonder_alarm():
     deliveroo = next(b for b in uit["bronnen"] if b["bron"] == "deliveroo")
     assert deliveroo["status"] == "ontbreekt"
     assert "Partner Hub" in deliveroo["toelichting"]
-    assert uit["ergste"] == "goed"
+    assert uit["ergste"] == "let_op"
+
+
+def test_deliveroo_met_data_is_een_periodieke_bron_met_een_lat_van_90_dagen():
+    """Het kanaal routeert naar `_stand_periodiek` via `ACHTER_DAGEN_PER_KANAAL`
+    en niet naar de dagelijkse tak: een jongste dag van 60 dagen oud is 'vers'
+    (binnen de lat), een van 100 dagen oud is 'achter'."""
+    tot = D(2026, 5, 10)
+    winkel = _week_verkopen(tot)
+    vers = _verkopen(winkel + [_deliveroorij(D(2026, 3, 11))])
+    kal = _kalender(
+        [(tot - dt.timedelta(days=i), True, True) for i in range(14)]
+        + [(tot + dt.timedelta(days=i), False, False) for i in range(1, 21)]
+    )
+    uit = kw.stand(vers, kal, vandaag=D(2026, 5, 11))
+    d = next(b for b in uit["bronnen"] if b["bron"] == "deliveroo")
+    assert d["status"] == "vers"
+
+    oud = _verkopen(winkel + [_deliveroorij(D(2026, 1, 31))])
+    uit = kw.stand(oud, kal, vandaag=D(2026, 5, 11))
+    d = next(b for b in uit["bronnen"] if b["bron"] == "deliveroo")
+    assert d["status"] == "achter"
+    assert "90" in d["toelichting"]
 
 
 def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
@@ -153,9 +184,10 @@ def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
     bijkomt — permanent 'achter', en dat is het alarm dat op de dag van de
     echte storing niemand meer opvalt.
 
-    Het kanaal is met opzet verzonnen. Deliveroo staat in `BEKEND_AFWEZIG` en
-    hoort daar te blijven tot het echt laadt; een test die het kanaal alvast
-    zou 'aanzetten' zou dat besluit stilletjes vooruitlopen.
+    Het kanaal is met opzet verzonnen, zodat de test niet afhangt van welke
+    echte kanalen er vandaag in `BEVROREN` staan. Deliveroo krijgt een verse
+    dagrij mee: sinds de lading van 19 september 2026 is een lege Deliveroo
+    verdwenen data (let_op), en dat zou 'ergste' hier vervuilen.
     """
     monkeypatch.setattr(kw, "BRONNEN",
                         kw.BRONNEN + (("marktkraam", "marktkraam"),))
@@ -167,6 +199,7 @@ def test_een_tweede_bevroren_kanaal_krijgt_dezelfde_behandeling(monkeypatch):
     verkopen = _verkopen(
         _week_verkopen(tot)
         + [(laatste_kraam, "1", "9", "Pakket", "marktkraam", 2.0, 8.0)]
+        + [_deliveroorij(tot)]
     )
     kal = _kalender(
         [(tot - dt.timedelta(days=i), True, True) for i in range(14)]

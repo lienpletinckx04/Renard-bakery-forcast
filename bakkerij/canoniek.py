@@ -30,7 +30,10 @@ eerste kijkt naar het verleden, de tweede naar de dagen die nog moeten komen.
 from __future__ import annotations
 
 import datetime as dt
+import gzip
 from dataclasses import dataclass
+from decimal import Decimal
+from pathlib import Path
 
 import pandas as pd
 
@@ -174,6 +177,126 @@ def tarief_voor(maand: str, tabel: pd.Series) -> float:
         return float(tabel[maand])
     eerder = tabel[tabel.index < maand]
     return float(eerder.iloc[-1]) if not eerder.empty else float(tabel.iloc[0])
+
+
+# --- Deliveroo ---------------------------------------------------------------
+#
+# Het kanaal komt binnen als Orders-exports uit Partner Hub (zie
+# bakkerij/sources/deliveroo_parse.py). Wat hier staat, zet die bestellingen
+# om naar de canonieke vorm en naar de kanaalkosttabel. De keuzes staan in
+# docs/beslissingen.md, 19 september 2026; de kern:
+#
+#   * DAGNIVEAU, GEEN ARTIKELNIVEAU. Het Items Sold-rapport draagt geen datum
+#     en geen bestelnummer (het telt op over de hele downloadperiode), dus een
+#     omzet per artikel per dag bestaat niet in wat Deliveroo levert. De
+#     beslissing van 25 aug (een `dl-`-product per artikel) ging van iets
+#     anders uit en is daarmee vervallen. Per dag per vestiging staat er één
+#     rij, met één synthetisch product; `aantal` is het aantal bestellingen.
+#   * NETTO IN `omzet_excl_btw`, zoals bij TGTG (beslissing 28 aug): het
+#     subtotaal min de commissie. De btw op de commissie is aftrekbaar en dus
+#     geen kost. Het btw-regime van het subtotaal zelf blijft onbevestigd; dat
+#     voorbehoud staat als onbeschikbaar-item op het kanalenscherm.
+#   * DE COMMISSIE PER MAAND IS EEN GEMETEN GEMIDDELDE, geen tarief. Bij TGTG
+#     was `commissie_per_stuk` een vast tarief van de maandfactuur; hier is het
+#     de som van de commissies gedeeld door het aantal bestellingen. Wie er
+#     later een voorspelling op bouwt, moet dat weten (beslissing 25 aug).
+
+#: Het ene product waaronder Deliveroo per dag per vestiging staat. Een `dl-`
+#: prefix, om dezelfde reden als in CANONIEK_DTYPES: id's uit twee bronnen in
+#: één naamruimte botsen stil, en een botsing met een Odoo-productnummer zou
+#: bestellingen onder een brood laten vallen.
+DELIVEROO_PRODUCT_ID = "dl-bestellingen"
+DELIVEROO_PRODUCT_NAAM = "Deliveroo-bestellingen"
+
+KANAALKOST_KOLOMMEN = ["kanaal", "maand", "stuks", "bruto_per_stuk",
+                       "commissie_per_stuk", "inhouding_pct"]
+
+
+def laad_deliveroo_orders(paden) -> list:
+    """Leest elke Orders-export en ontdubbelt over de bestanden heen.
+
+    Downloads overlappen (de historiek kwam in blokken van ~16 dagen, waarvan
+    twee elkaar overlappen), dus dezelfde bestelling kan in twee bestanden
+    staan. De sleutel is (datum, vestiging, bestelnummer) en niet het
+    bestelnummer alleen: dat is kort en per vestiging, en botst dus tussen
+    winkels. Ontdubbelen gebeurt hier en niet in de parser, want de parser
+    kent één bestand en dit is een eigenschap van de verzameling.
+    """
+    from bakkerij.sources.deliveroo_parse import parse_orders
+
+    uniek: dict = {}
+    for pad in paden:
+        for r in parse_orders(_lees_tekst(pad)):
+            uniek[(r.datum, r.store_id, r.order_id)] = r
+    return list(uniek.values())
+
+
+def _lees_tekst(pad) -> str:
+    """Een export als tekst, ook als hij gecomprimeerd in de postbus ligt.
+
+    De postbus bewaart bytes en vraagt niet wat ze zijn. Een Partner Hub-CSV
+    van een halve megabyte wordt met gzip zes keer kleiner, en voor de
+    historiek van twaalf maanden (23 downloads) is dat het verschil tussen
+    een oplading die past en een die niet past. De extensie beslist; de
+    inhoud is daarna dezelfde tekst als bij een kale CSV.
+    """
+    pad = Path(pad)
+    if pad.suffix == ".gz":
+        with gzip.open(pad, "rt", encoding="utf-8") as fh:
+            return fh.read()
+    return pad.read_text(encoding="utf-8")
+
+
+def orders_naar_canoniek(regels) -> pd.DataFrame:
+    """Van Orders-regels naar canonieke verkooprijen: per dag per vestiging
+    één rij op het product DELIVEROO_PRODUCT_ID, `aantal` = bestellingen,
+    `omzet_excl_btw` = subtotaal min commissie (netto, op de cent)."""
+    if not regels:
+        return pd.DataFrame(columns=KOLOMMEN)
+    per: dict = {}
+    for r in regels:
+        s = per.setdefault((r.datum, r.store_id),
+                           {"aantal": 0, "netto": Decimal(0)})
+        s["aantal"] += 1
+        s["netto"] += r.subtotaal - r.commissie
+    rijen = [{
+        "datum": datum,
+        "filiaal_id": str(store),
+        "product_id": DELIVEROO_PRODUCT_ID,
+        "product_naam": DELIVEROO_PRODUCT_NAAM,
+        "kanaal": "deliveroo",
+        "aantal": float(s["aantal"]),
+        "omzet_excl_btw": float(s["netto"].quantize(Decimal("0.01"))),
+    } for (datum, store), s in sorted(per.items())]
+    return pd.DataFrame(rijen, columns=KOLOMMEN)
+
+
+def kanaalkost_deliveroo(regels) -> pd.DataFrame:
+    """De kanaalkost van Deliveroo per maand, in de vorm van fact_kanaalkost.
+    `stuks` is het aantal bestellingen; de twee bedragen per stuk zijn
+    gemeten gemiddelden over die maand, geen tarief."""
+    if not regels:
+        return pd.DataFrame(columns=KANAALKOST_KOLOMMEN)
+    per: dict = {}
+    for r in regels:
+        m = f"{r.datum.year:04d}-{r.datum.month:02d}"
+        s = per.setdefault(m, {"n": 0, "bruto": Decimal(0),
+                               "commissie": Decimal(0)})
+        s["n"] += 1
+        s["bruto"] += r.subtotaal
+        s["commissie"] += r.commissie
+    rijen = []
+    for maand, s in sorted(per.items()):
+        inhouding = (s["commissie"] / s["bruto"]) if s["bruto"] else Decimal(0)
+        rijen.append({
+            "kanaal": "deliveroo",
+            "maand": maand,
+            "stuks": float(s["n"]),
+            "bruto_per_stuk": round(float(s["bruto"] / s["n"]), 4),
+            "commissie_per_stuk": round(float(s["commissie"] / s["n"]), 4),
+            "inhouding_pct": round(min(max(float(inhouding), 0.0), 1.0), 4),
+        })
+    return pd.DataFrame(rijen, columns=KANAALKOST_KOLOMMEN)
 
 
 def bouw_verkopen(*delen: pd.DataFrame) -> pd.DataFrame:

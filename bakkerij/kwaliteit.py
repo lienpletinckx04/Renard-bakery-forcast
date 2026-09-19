@@ -95,7 +95,14 @@ BRONNEN = (("winkel", "odoo-kassa"), ("deliveroo", "deliveroo"))
 #: valt het alsnog in de dagelijkse tak — dezelfde val als hierboven.
 #:
 #: Zie `docs/beslissingen.md`, 25 augustus 2026.
-BEKEND_AFWEZIG = ("deliveroo",)
+#:
+#: 19 SEPTEMBER 2026: DELIVEROO IS HIER WEG EN STAAT IN `ACHTER_DAGEN_PER_KANAAL`.
+#: De derde mogelijkheid hierboven is werkelijkheid geworden: de historiek is
+#: aangeleverd (23 Partner Hub-downloads, sep 2025 t/m sep 2026) en het kanaal
+#: komt voortaan periodiek bij via het uploadscherm. Precies zoals hierboven
+#: beschreven: één regel in die tabel, niets anders. De lijst blijft bestaan,
+#: leeg, voor de volgende bron die wél bekend afwezig is.
+BEKEND_AFWEZIG: tuple[str, ...] = ()
 
 #: Bronnen die niet meer aangevuld wórden, en dus niet tegen de klok gemeten
 #: mogen worden. De keerzijde van BEKEND_AFWEZIG: die bron kwam nooit, deze
@@ -148,7 +155,11 @@ STANDAARD_ACHTER_DAGEN = 45
 #: geen kanaal met een periodiek (niet-dagelijks) ritme. Een lat voor een bron
 #: die nog niet bestaat is een getal dat niemand ooit tegen de werkelijkheid
 #: houdt.
-ACHTER_DAGEN_PER_KANAAL: dict[str, int] = {}
+#: Deliveroo: 90 dagen. Partner Hub levert per download hoogstens negentig
+#: dagen, dus wie per kwartaal oplaadt loopt nooit meer dan dat achter; wie
+#: het vergeet, ziet het hier als 'achter'. Gekozen op 19 september 2026, de
+#: dag dat het kanaal geladen is.
+ACHTER_DAGEN_PER_KANAAL: dict[str, int] = {"deliveroo": 90}
 
 #: Zoveel dagen moet de kalender minstens voorbij vandaag lopen: de prognose
 #: heeft voor elke voorspelde dag een kalenderrij nodig (zie VOORUIT_DAGEN in

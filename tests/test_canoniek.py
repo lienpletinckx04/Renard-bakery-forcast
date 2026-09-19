@@ -5,11 +5,13 @@ moeten kunnen draaien (en in de repo staan) zonder dat er ook maar iets van de
 eindklant meereist.
 """
 import datetime
+from decimal import Decimal
 
 import pandas as pd
 import pytest
 
 from bakkerij import canoniek
+from bakkerij.sources.deliveroo_parse import Orderregel
 
 
 def _winkel(rijen) -> pd.DataFrame:
@@ -657,3 +659,110 @@ def test_een_sluiting_zonder_kalenderrij_valt_niet_ook_in_buiten_kalender():
     )
     assert datetime.date(2026, 8, 15) not in venster.buiten_kalender
     assert venster.gepland_gesloten == ((datetime.date(2026, 8, 15), "Feestdag"),)
+
+
+# --- Deliveroo -------------------------------------------------------------
+#
+# De Orders-export draagt per bestelling een datum, een vestiging, een
+# subtotaal en een commissie. Wat hier getest wordt is de omzetting naar de
+# canonieke vorm en naar de kanaalkost, niet het lezen zelf (dat staat in
+# test_deliveroo_parse.py).
+
+
+
+def _order(datum, store, nr, subtotaal, commissie) -> Orderregel:
+    return Orderregel(datum=datetime.date.fromisoformat(datum), store_id=store,
+                      order_id=nr, subtotaal=Decimal(subtotaal),
+                      commissie=Decimal(commissie),
+                      btw_op_commissie=Decimal(0))
+
+
+def test_orders_naar_canoniek_telt_per_dag_per_vestiging_en_neemt_netto():
+    """Twee bestellingen op één dag in Elsene, één in Ukkel: twee rijen, het
+    aantal is het aantal bestellingen, de omzet is subtotaal min commissie."""
+    regels = [
+        _order("2026-09-01", "Renard Bakery Ixelles", "1", "20.00", "4.00"),
+        _order("2026-09-01", "Renard Bakery Ixelles", "2", "30.00", "6.00"),
+        _order("2026-09-01", "Renard Bakery Uccle", "1", "10.00", "2.00"),
+    ]
+    uit = canoniek.orders_naar_canoniek(regels)
+    assert list(uit.columns) == canoniek.KOLOMMEN
+    assert len(uit) == 2
+    elsene = uit[uit["filiaal_id"] == "Renard Bakery Ixelles"].iloc[0]
+    assert elsene["kanaal"] == "deliveroo"
+    assert elsene["product_id"] == canoniek.DELIVEROO_PRODUCT_ID
+    assert elsene["aantal"] == 2.0
+    assert elsene["omzet_excl_btw"] == 40.00  # 50 bruto - 10 commissie
+    ukkel = uit[uit["filiaal_id"] == "Renard Bakery Uccle"].iloc[0]
+    assert ukkel["omzet_excl_btw"] == 8.00
+
+
+def test_orders_naar_canoniek_past_in_bouw_verkopen_naast_winkel():
+    winkel = _winkel([("2026-09-01", "Ixelles Kassa 1", "10", "Brood", 3, 9.0)])
+    deliveroo = canoniek.orders_naar_canoniek(
+        [_order("2026-09-01", "Renard Bakery Ixelles", "1", "20.00", "4.00")])
+    uit = canoniek.bouw_verkopen(winkel, deliveroo)
+    assert set(uit["kanaal"]) == {"winkel", "deliveroo"}
+    status = {s["kanaal"]: s for s in canoniek.kanaalstatus(uit)}
+    assert status["deliveroo"]["beschikbaar"] is True
+
+
+def test_kanaalkost_deliveroo_is_een_gemeten_gemiddelde_per_maand():
+    """Twee maanden. September: 50 bruto en 10 commissie over twee
+    bestellingen; per stuk 25 en 5, inhouding 0,2. Oktober: één bestelling."""
+    regels = [
+        _order("2026-09-01", "Renard Bakery Ixelles", "1", "20.00", "4.00"),
+        _order("2026-09-15", "Renard Bakery Ixelles", "2", "30.00", "6.00"),
+        _order("2026-10-02", "Renard Bakery Uccle", "1", "10.00", "2.50"),
+    ]
+    uit = canoniek.kanaalkost_deliveroo(regels).set_index("maand")
+    assert list(uit.index) == ["2026-09", "2026-10"]
+    assert uit.loc["2026-09", "stuks"] == 2.0
+    assert uit.loc["2026-09", "bruto_per_stuk"] == 25.0
+    assert uit.loc["2026-09", "commissie_per_stuk"] == 5.0
+    assert uit.loc["2026-09", "inhouding_pct"] == 0.2
+    assert uit.loc["2026-10", "inhouding_pct"] == 0.25
+    assert set(uit["kanaal"]) == {"deliveroo"}
+
+
+def test_laad_deliveroo_orders_ontdubbelt_over_bestanden_heen(tmp_path):
+    """Twee downloads die elkaar overlappen dragen dezelfde bestelling; die
+    telt één keer. De sleutel is (datum, vestiging, nummer), dus hetzelfde
+    nummer bij een andere vestiging is een andere bestelling."""
+    kop = ("Naam restaurant,Bestelnummer,Bestelstatus,Datum ingediend,"
+           "Tijdstip ingediend,Bezorgdatum,Tijdstip bezorging,Subtotaal,"
+           "Deliveroo-commissie,Btw op Deliveroo-commissie\n")
+    a = kop + ("Renard Bakery Ixelles,7,Afgerond,2026-09-01,10:00:00,"
+               "2026-09-01,10:30:00,20.00,4.00,0.84\n")
+    b = kop + ("Renard Bakery Ixelles,7,Afgerond,2026-09-01,10:00:00,"
+               "2026-09-01,10:30:00,20.00,4.00,0.84\n"
+               "Renard Bakery Uccle,7,Afgerond,2026-09-01,11:00:00,"
+               "2026-09-01,11:30:00,10.00,2.00,0.42\n")
+    (tmp_path / "a.csv").write_text(a, encoding="utf-8")
+    (tmp_path / "b.csv").write_text(b, encoding="utf-8")
+    regels = canoniek.laad_deliveroo_orders([tmp_path / "a.csv",
+                                             tmp_path / "b.csv"])
+    assert len(regels) == 2
+    assert {r.store_id for r in regels} == {"Renard Bakery Ixelles",
+                                            "Renard Bakery Uccle"}
+
+
+def test_zonder_orders_is_deliveroo_leeg_en_de_kanaalkost_ook():
+    assert canoniek.orders_naar_canoniek([]).empty
+    assert canoniek.kanaalkost_deliveroo([]).empty
+
+
+def test_laad_deliveroo_orders_leest_ook_een_gecomprimeerde_export(tmp_path):
+    """De postbus draagt bytes; een export van een halve megabyte gaat er
+    gecomprimeerd in. De extensie beslist, de inhoud is dezelfde tekst."""
+    import gzip
+    kop = ("Naam restaurant,Bestelnummer,Bestelstatus,Datum ingediend,"
+           "Tijdstip ingediend,Bezorgdatum,Tijdstip bezorging,Subtotaal,"
+           "Deliveroo-commissie,Btw op Deliveroo-commissie\n")
+    rij = ("Renard Bakery Uccle,9,Afgerond,2026-09-01,10:00:00,"
+           "2026-09-01,10:30:00,12.00,2.40,0.50\n")
+    pad = tmp_path / "000001_rs-orders-report_x.csv.gz"
+    with gzip.open(pad, "wt", encoding="utf-8") as fh:
+        fh.write(kop + rij)
+    regels = canoniek.laad_deliveroo_orders([pad])
+    assert len(regels) == 1 and regels[0].store_id == "Renard Bakery Uccle"
