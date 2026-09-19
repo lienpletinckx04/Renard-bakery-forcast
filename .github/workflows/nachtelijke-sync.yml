@@ -24,6 +24,15 @@ on:
           de contractlader, en terecht.
         type: boolean
         default: false
+      volledig:
+        description: >-
+          Sla de poortwachter over en haal alles opnieuw op, ook als er in Odoo
+          niets gewijzigd is. Nodig na een migratie die data wegneemt die de
+          ketting daarna hoort te herladen: de poortwachter kijkt alléén naar
+          Odoo, weet van zo'n migratie niets, en stopt de run dan ná de
+          migratie en vóór het laden. Zie 19 september 2026 in beslissingen.md.
+        type: boolean
+        default: false
 
 # `issues: write` draagt de faalmelding onderaan. Zonder deze regel faalt die
 # stap zelf met een 403 en verdwijnt de storing in een logboek dat niemand
@@ -178,7 +187,11 @@ jobs:
         # één run. De cron kent geen inputs en draait dus altijd mét de wacht.
         env:
           CONTRACT_KRIMP_OK: ${{ inputs.krimp_ok && '1' || '' }}
-        run: make sync
+        # `--volledig` bestond al in nachtelijke_sync.py maar was vanuit CI
+        # nergens te bereiken: `make sync` gaf geen argumenten door. Daardoor
+        # was de poortwachter vanaf GitHub niet over te slaan, precies wanneer
+        # dat moest. SYNC_ARGS is die doorgang.
+        run: make sync SYNC_ARGS="${{ inputs.volledig && '--volledig' || '' }}"
 
       - name: Faalmelding als issue
         if: failure()

@@ -202,8 +202,11 @@ contract:
 ## De nachtelijke ketting (blok 8): poortwachter op write_date, dan
 ## extract -> canoniek -> laden, met één etl_run-rij per run. Lokaal draaien
 ## kan; in productie doet .github/workflows/nachtelijke-sync.yml dit elke nacht.
+## SYNC_ARGS geeft argumenten door aan de ketting; vandaag alleen `--volledig`,
+## dat de poortwachter overslaat. Zonder die doorgang was die vlag vanuit de
+## workflow niet te bereiken (zie .github/workflows/nachtelijke-sync.yml).
 sync:
-	$(PY) scripts/nachtelijke_sync.py
+	$(PY) scripts/nachtelijke_sync.py $(SYNC_ARGS)
 
 ## Dezelfde ketting zonder Odoo en zonder schrijven: canoniek + db-laad droog
 ## op de lokale data. De toets die zonder databasesleutel kan.
