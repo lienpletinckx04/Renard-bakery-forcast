@@ -1,6 +1,6 @@
 import type { KerncijferData } from "@/lib/contract";
 import { aantal, euro, verschilProcent } from "@/lib/format";
-import { richtingKleur } from "@/lib/signaal";
+import { richtingChip } from "@/lib/signaal";
 import type { T } from "@/lib/taal";
 
 /**
@@ -59,8 +59,14 @@ export default function Kerncijfer({
               stijgingspijl bij een daling. Het teken komt uit format.ts en
               staat er hoe dan ook; de pijl is versterking, en een versterking
               die de verkeerde kant op wijst is erger dan geen pijl. */}
+          {/* Een chip en geen los gekleurd woord: op een wit vlak met een
+              groot zwart getal erboven verdween gekleurde tekst; een vlakje
+              met de kleur erachter niet. Op het bordeaux accent geen chip, om
+              de reden in de kop van dit bestand. */}
           <span
-            className={`font-semibold ${accent ? "" : richtingKleur(cijfer.richting)}`}
+            className={`text-base ${
+              accent ? "font-bold" : richtingChip(cijfer.richting) || "font-bold"
+            }`}
           >
             {cijfer.richting ? (
               <>

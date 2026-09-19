@@ -25,6 +25,27 @@ export function richtingKleur(richting: Richting | undefined): string {
   return "";
 }
 
+/**
+ * De chip achter een verschil: tekst in de volle kleur op het lichte vlak van
+ * dezelfde kleur, vet, met wat lucht. Eén klassenreeks, zodat een chip op het
+ * kerncijfer en een chip in een tabel er hetzelfde uitzien. Leeg zonder
+ * richting: nul krijgt geen chip.
+ */
+export function richtingChip(richting: Richting | undefined): string {
+  if (richting === "op")
+    return "rounded-klein bg-signaal-goed-vlak px-2 py-0.5 font-bold text-signaal-goed";
+  if (richting === "neer")
+    return "rounded-klein bg-signaal-actie-vlak px-2 py-0.5 font-bold text-signaal-actie";
+  return "";
+}
+
+/** Achtergrondvlak bij een briefingstatus. */
+export const STATUSVLAK: Record<Status, string> = {
+  goed: "bg-signaal-goed-vlak",
+  let_op: "bg-signaal-letop-vlak",
+  actie: "bg-signaal-actie-vlak",
+};
+
 /** Tekstkleur bij een briefingstatus. */
 export const STATUSKLEUR: Record<Status, string> = {
   goed: "text-signaal-goed",

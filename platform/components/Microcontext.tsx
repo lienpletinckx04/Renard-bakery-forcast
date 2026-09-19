@@ -1,6 +1,6 @@
 import type { ContextItem } from "@/lib/contract";
 import { aantal, euro, verschilProcent } from "@/lib/format";
-import { richtingKleur } from "@/lib/signaal";
+import { richtingChip } from "@/lib/signaal";
 
 function tekst(item: ContextItem): string {
   switch (item.soort) {
@@ -30,10 +30,10 @@ export default function Microcontext({ items }: { items: ContextItem[] }) {
         <div key={item.label}>
           <dt className="kapitaal-label text-zwart">{item.label}</dt>
           <dd
-            className={`mt-0.5 text-sm font-medium tabular-nums ${
+            className={`mt-0.5 text-sm tabular-nums ${
               item.soort === "verschil"
-                ? richtingKleur(item.richting) || "text-zwart"
-                : "text-zwart"
+                ? richtingChip(item.richting) || "font-medium text-zwart"
+                : "font-semibold text-zwart"
             }`}
           >
             {item.soort === "verschil" && item.richting ? (

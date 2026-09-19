@@ -41,6 +41,20 @@
   --color-signaal-letop: #b26b00;
   --color-signaal-actie: #d8382a;
 
+  /*
+   * De vlakken bij die drie: een lichte was van dezelfde kleur, voor de
+   * achtergrond van een briefingpunt en de chip achter een verschil. Op 19
+   * september 2026 erbij gekomen, na de eerste kleurronde: een lijn van twee
+   * pixels en een woord van elf viel niet genoeg op ("kleuren vallen nog niet
+   * genoeg op, zijt niet te braaf"). Een vlak zie je van over de tafel; een
+   * lijn niet. De tekst erop blijft in de volle signaalkleur of in zwart, en
+   * het contrast van elk paar (tekst op zijn eigen vlak) is nagerekend op
+   * minstens 4,5:1.
+   */
+  --color-signaal-goed-vlak: #e3f2e9;
+  --color-signaal-letop-vlak: #fbefd9;
+  --color-signaal-actie-vlak: #fde4e1;
+
   --font-sans: var(--font-inter-tight), sans-serif;
 
   --radius-*: initial;

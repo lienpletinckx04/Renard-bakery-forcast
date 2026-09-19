@@ -1,6 +1,11 @@
 import { allesGedeeld, bedragTekst, ONBEKEND, opVolgorde } from "@/lib/briefing";
 import type { Briefing as BriefingInhoud, BriefingPunt } from "@/lib/contract";
-import { richtingKleur, STATUSKLEUR, STATUSLIJN } from "@/lib/signaal";
+import {
+  richtingChip,
+  STATUSKLEUR,
+  STATUSLIJN,
+  STATUSVLAK,
+} from "@/lib/signaal";
 
 /**
  * De briefing bovenaan een scherm: een handvol punten die zeggen wat er
@@ -56,10 +61,17 @@ import { richtingKleur, STATUSKLEUR, STATUSLIJN } from "@/lib/signaal";
  * hoort niet even hard te roepen als wat actie vraagt, ook niet in het groen.
  * De kleurtokens komen uit lib/signaal.ts, dezelfde als op de kerncijfers.
  */
+/*
+ * Sinds 19 september 2026 staat elk punt op een licht vlak in zijn eigen
+ * kleur, met de lijn links dikker dan voorheen (4px bij actie). De eerste
+ * kleurronde -- alleen een dunne lijn en het woord -- viel van over de tafel
+ * niet op; een vlak wel. Het vlak loopt tot de rand van het punt en het punt
+ * krijgt daarvoor eigen padding, zodat de tekst niet tegen de kleur plakt.
+ */
 const LIJN: Record<BriefingPunt["status"], string> = {
-  actie: `border-l-2 ${STATUSLIJN.actie} pl-5`,
-  let_op: `border-l ${STATUSLIJN.let_op} pl-4`,
-  goed: `border-l ${STATUSLIJN.goed} pl-4`,
+  actie: `border-l-4 ${STATUSLIJN.actie} ${STATUSVLAK.actie} rounded-klein py-4 pl-5 pr-4`,
+  let_op: `border-l-4 ${STATUSLIJN.let_op} ${STATUSVLAK.let_op} rounded-klein py-4 pl-5 pr-4`,
+  goed: `border-l-2 ${STATUSLIJN.goed} ${STATUSVLAK.goed} rounded-klein py-3 pl-4 pr-4`,
 };
 
 /**
@@ -74,16 +86,22 @@ const LIJN: Record<BriefingPunt["status"], string> = {
  * leest slechter dan een die dat wel doet.
  */
 const WOORD: Record<BriefingPunt["status"], string> = {
-  actie: `text-[0.8125rem] font-bold ${STATUSKLEUR.actie}`,
-  let_op: `text-[0.75rem] font-semibold ${STATUSKLEUR.let_op}`,
-  goed: `text-[0.6875rem] font-medium ${STATUSKLEUR.goed}`,
+  actie: `text-[0.875rem] font-black ${STATUSKLEUR.actie}`,
+  let_op: `text-[0.8125rem] font-bold ${STATUSKLEUR.let_op}`,
+  goed: `text-[0.75rem] font-bold ${STATUSKLEUR.goed}`,
 };
 
-/** De maat en het gewicht van de kop; de zichtbaarste trap van de ladder. */
+/**
+ * De maat en het gewicht van de kop; de zichtbaarste trap van de ladder.
+ * Bij een actie staat ook de kop zelf in het signaalrood en vet: dat is het
+ * punt dat iemand met twee minuten móét zien, en één gekleurd woord erboven
+ * bleek daarvoor niet genoeg. Let-op en goed houden een zwarte kop, zodat de
+ * rode kop iets betekent.
+ */
 const KOP: Record<BriefingPunt["status"], string> = {
-  actie: "text-lg font-semibold",
-  let_op: "text-base font-medium",
-  goed: "text-base font-normal",
+  actie: `text-xl font-bold ${STATUSKLEUR.actie}`,
+  let_op: "text-lg font-semibold text-zwart",
+  goed: "text-base font-medium text-zwart",
 };
 
 export default function Briefing({
@@ -169,9 +187,7 @@ export default function Briefing({
             {/* `grow` en niet `flex-1`: die laatste zet ook de basis op nul en
                 zou met basis-64 om voorrang vechten in de gegenereerde CSS. */}
             <div className="min-w-0 grow basis-64">
-              <h3
-                className={`text-zwart ${KOP[punt.status] ?? KOP[ONBEKEND]}`}
-              >
+              <h3 className={KOP[punt.status] ?? KOP[ONBEKEND]}>
                 {/* Het kapitaalregister uit het logo, hier met de hand gezet en
                     niet via .kapitaal-label: die utility legt het gewicht vast,
                     en juist het gewicht is hier het verschil tussen de drie
@@ -203,10 +219,10 @@ export default function Briefing({
                 het teken uit format.ts staan er hoe dan ook. */}
             {punt.bedrag !== null ? (
               <p
-                className={`text-sm font-medium whitespace-nowrap tabular-nums ${
+                className={`text-base whitespace-nowrap tabular-nums ${
                   punt.soort === "verschil"
-                    ? richtingKleur(punt.richting) || "text-zwart"
-                    : "text-zwart"
+                    ? richtingChip(punt.richting) || "font-medium text-zwart"
+                    : "font-bold text-zwart"
                 }`}
               >
                 {punt.richting ? (

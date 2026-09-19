@@ -20,9 +20,12 @@ function Pijl({ richting }: { richting: "op" | "neer" | null }) {
   return <span aria-hidden="true">{richting === "neer" ? "↓ " : "↑ "}</span>;
 }
 
-/** De tekstkleur van een bedrag met richting; zwart zonder richting. */
+/** De tekstkleur van een bedrag met richting; zwart zonder richting. Vet
+    in beide gevallen: dit zijn de bedragen die de lezer natelt. */
 function inkt(richting: "op" | "neer" | null): string {
-  return richtingKleur(richting) || "text-zwart";
+  // Geen template literal met tekst vooraan: de tekstwacht in
+  // geen-harde-tekst.test.ts leest "font-bold " dan als schermtekst.
+  return ["font-bold", richtingKleur(richting) || "text-zwart"].join(" ");
 }
 
 export default function Ontbinding({
